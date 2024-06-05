@@ -1,6 +1,7 @@
 {
     "require": {
         "altorouter/altorouter": "^2.0",
-        "vlucas/valitron": "^1.4"
+        "vlucas/valitron": "^1.4",
+        "symfony/var-dumper": "^7.1"
     }
 }
