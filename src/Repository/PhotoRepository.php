@@ -1,8 +1,7 @@
 <?php
-
 namespace App\Repository;
 
-class AbstractRepository
+final class PhotoRepository extends PostRepository
 {
     public function create()
     {

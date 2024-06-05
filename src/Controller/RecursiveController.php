@@ -1,10 +1,8 @@
 <?php
-
 namespace App\Controller;
 
-abstract class AppController extends AbstractController
+abstract class RecursiveController extends AppController
 {
-
     public function index()
     {
 

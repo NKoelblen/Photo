@@ -1,15 +1,12 @@
 <?php
-
 namespace App\Controller;
 
-abstract class AppController extends AbstractController
+final class AlbumController extends PostController
 {
-
     public function index()
     {
 
     }
-
     public function show()
     {
 

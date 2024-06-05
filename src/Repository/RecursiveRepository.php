@@ -1,8 +1,7 @@
 <?php
-
 namespace App\Repository;
 
-class AbstractRepository
+abstract class RecursiveRepository extends PostRepository
 {
     public function create()
     {
