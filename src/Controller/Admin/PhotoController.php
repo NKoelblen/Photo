@@ -7,7 +7,8 @@ final class PhotoController extends PostController
 
     public function index()
     {
-
+        $title = 'Photos';
+        return $this->render('admin/photo/index', compact('title'));
     }
 
     public function trash_index()
@@ -22,7 +23,8 @@ final class PhotoController extends PostController
 
     public function edit()
     {
-
+        $title = 'Modifier la photo';
+        return $this->render('admin/photo/edit', compact('title'));
     }
     public function bulk_edit()
     {

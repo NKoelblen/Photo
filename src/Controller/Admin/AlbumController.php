@@ -16,12 +16,14 @@ final class AlbumController extends PostController
 
     public function new()
     {
-
+        $title = 'Nouvel album';
+        return $this->render('admin/album/new', compact('title'));
     }
 
     public function edit()
     {
-
+        $title = "Modifier l'album";
+        return $this->render('admin/album/edit', compact('title'));
     }
     public function bulk_edit()
     {

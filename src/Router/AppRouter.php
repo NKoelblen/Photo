@@ -17,7 +17,7 @@ class AppRouter extends AbstractRouter
         $this->alto_router->map('GET|POST', '/login', 'App\Controller\UserController#login', 'login');
         $this->alto_router->map('POST', '/logout', 'App\Controller\UserController#logout', 'logout');
 
-        $this->alto_router->map('GET', '/admin', 'App\Controller\Admin\AdminController#dashboard', 'admin');
+        $this->alto_router->map('GET', '/admin', 'App\Controller\Admin\PageController#dashboard', 'admin');
 
         $posts = [
             ['singular' => 'album', 'plural' => 'albums'],
@@ -40,11 +40,11 @@ class AppRouter extends AbstractRouter
             $single_admin__root = "$admin_root/[i:id]";
             $admin_controller = $namespace . 'Admin\\' . $class;
 
-            $this->alto_router->map('GET|POST', $admin_root, $admin_controller . '#index', "admin_{$post['singular']}");
-            $this->alto_router->map('GET|POST', "$admin_root/trash", $admin_controller . '#trash_index', "{$post['plural']}_trash");
             if ($post['singular'] === 'photo'):
-                $this->alto_router->map('GET|POST', "$admin_root/new", $admin_controller . '#new', "new_{$post['plural']}");
+                $this->alto_router->map('GET|POST', $admin_root, $admin_controller . '#index', "admin_{$post['singular']}");
+                $this->alto_router->map('GET|POST', "$admin_root/trash", $admin_controller . '#trash_index', "{$post['plural']}_trash");
             endif;
+            $this->alto_router->map('GET|POST', "$admin_root/new", $admin_controller . '#new', "new_{$post['singular']}");
             $this->alto_router->map('GET|POST', $single_admin__root, $admin_controller . '#edit', "edit_{$post['singular']}");
             if ($post['singular'] === 'category' || $post['singular'] === 'photo'):
                 $this->alto_router->map('GET|POST', "$admin_root/bulk_edit", $admin_controller . '#bulk_edit', "bulk_edit_{$post['plural']}");

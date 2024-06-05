@@ -44,28 +44,28 @@
                         <?php if (session_status() === PHP_SESSION_NONE):
                             session_start();
                         endif;
-                        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                            <li class="nav-item">
-                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/photos' ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate('admin_photo') ?>">Photos</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/categories' ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate('admin_category') ?>">Catégories</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/locations') ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate('admin_location') ?>">Emplacements</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/albums') ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate('admin_album') ?>">Albums</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/users' ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate('admin_user') ?>">Utilisateurs</a>
-                            </li>
-                        <?php endif; ?>
+                        // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/photos' ? 'active' : ''; ?>"
+                                href="<?= $router->get_alto_router()->generate('admin_photo') ?>">Photos</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/categories' ? 'active' : ''; ?>"
+                                href="<?= $router->get_alto_router()->generate('new_category') ?>">Catégories</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/locations') ? 'active' : ''; ?>"
+                                href="<?= $router->get_alto_router()->generate('new_location') ?>">Emplacements</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/albums') ? 'active' : ''; ?>"
+                                href="<?= $router->get_alto_router()->generate('new_album') ?>">Albums</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/users' ? 'active' : ''; ?>"
+                                href="<?= $router->get_alto_router()->generate('admin_user') ?>">Utilisateurs</a>
+                        </li>
+                        <?php // endif; ?>
                     </ul>
                 </div>
                 <ul class="navbar-nav">
@@ -76,8 +76,11 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a class="dropdown-item <?= $_SERVER['REQUEST_URI'] === ('/admin/users/' . $_SESSION['auth']) ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate('edit_profile', ['id' => $_SESSION['auth']]) ?>">
+                                <a class="dropdown-item
+                                <!-- $_SERVER['REQUEST_URI'] === ('/admin/users/' . $_SESSION['auth']) ? 'active' : '' -->
+                                " href="
+                                    <!-- $router->get_alto_router()->generate('edit_profile', ['id' => $_SESSION['auth']]) -->
+                                    ">
                                     Mon Profil
                                 </a>
                             </li>

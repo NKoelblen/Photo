@@ -1,7 +1,7 @@
 <?php
 namespace App\Controller\Admin;
 
-abstract class LocationController extends RecursiveController
+final class LocationController extends RecursiveController
 {
     protected string $table = 'location';
 
@@ -16,12 +16,14 @@ abstract class LocationController extends RecursiveController
 
     public function new()
     {
-
+        $title = 'Nouvel emplacement';
+        return $this->render('admin/location/new', compact('title'));
     }
 
     public function edit()
     {
-
+        $title = "Modifier l'emplacement";
+        return $this->render('admin/location/edit', compact('title'));
     }
     public function bulk_edit()
     {

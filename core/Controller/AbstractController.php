@@ -19,7 +19,7 @@ abstract class AbstractController
         $this->params = $params;
     }
 
-    protected function render($view, $data = [])
+    protected function render(string $view, array $data = [])
     {
         $data['router'] = $this->router;
         try {
@@ -27,7 +27,7 @@ abstract class AbstractController
             extract($data);
             require $this->view_path . $view . '.php';
             $content = ob_get_clean();
-            require (dirname($this->view_path) . DIRECTORY_SEPARATOR . 'layout/' . $this->layout . '.php');
+            require (dirname($this->view_path) . DIRECTORY_SEPARATOR . 'layouts/' . $this->layout . '.php');
         } catch (ForbidenException $exception) {
             header("Location: {$router->get_alto_router()->generate('login')}?forbidden=1");
             exit();
