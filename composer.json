@@ -1,5 +1,5 @@
 {
-	"name": "onoko/photos",
+	"name": "onoko/photo",
 	"type": "project",
 	"autoload": {
 		"psr-4": {
