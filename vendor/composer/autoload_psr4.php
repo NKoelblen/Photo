@@ -11,5 +11,7 @@ return array(
     'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
     'Symfony\\Component\\VarDumper\\' => array($vendorDir . '/symfony/var-dumper'),
     'Psr\\Log\\' => array($vendorDir . '/psr/log/src'),
-    'App\\' => array($baseDir . '/src', $baseDir . '/core'),
+    'Psr\\Container\\' => array($vendorDir . '/psr/container/src'),
+    'Faker\\' => array($vendorDir . '/fakerphp/faker/src/Faker'),
+    'App\\' => array($baseDir . '/src', $baseDir . '/core', $baseDir . '/view'),
 );

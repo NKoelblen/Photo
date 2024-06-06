@@ -1,12 +1,14 @@
 <?php
 namespace App\Entity;
 
+use App\Helpers\Text;
+
 abstract class PostEntity extends AppEntity
 {
     protected string $title = '';
     protected string $slug = '';
     protected string $status = 'published';
-    protected bool $private = false;
+    protected string|int|null $private = null;
 
     public function get_title(): string
     {
@@ -15,6 +17,7 @@ abstract class PostEntity extends AppEntity
     public function set_title(string $title): static
     {
         $this->title = $title;
+        $this->set_slug($title);
         return $this;
     }
 
@@ -24,7 +27,7 @@ abstract class PostEntity extends AppEntity
     }
     public function set_slug(string $slug): static
     {
-        $this->slug = $slug;
+        $this->slug = Text::slugify($slug);
         return $this;
     }
 
@@ -38,13 +41,25 @@ abstract class PostEntity extends AppEntity
         return $this;
     }
 
-    public function get_private(): bool
+    public function get_private(): array|bool|null
     {
-        return $this->private;
+        if (is_string($this->private)):
+            return json_decode($this->private, true);
+        elseif (is_int($this->private)):
+            return (bool) $this->private;
+        else:
+            return $this->private;
+        endif;
     }
-    public function set_private(bool $private): static
+    public function set_private(array|bool|null $private): static
     {
-        $this->private = $private;
+        if (is_array($private)):
+            $this->private = json_encode($private);
+        elseif (is_bool($private)):
+            $this->private = (int) $private;
+        else:
+            $this->private = $private;
+        endif;
         return $this;
     }
 }

@@ -7,6 +7,7 @@ namespace Composer\Autoload;
 class ComposerStaticInitcdc540639fbf1cb4b940a9197d9773c3
 {
     public static $files = array (
+        '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
     );
@@ -28,6 +29,11 @@ class ComposerStaticInitcdc540639fbf1cb4b940a9197d9773c3
         'P' => 
         array (
             'Psr\\Log\\' => 8,
+            'Psr\\Container\\' => 14,
+        ),
+        'F' => 
+        array (
+            'Faker\\' => 6,
         ),
         'A' => 
         array (
@@ -56,10 +62,19 @@ class ComposerStaticInitcdc540639fbf1cb4b940a9197d9773c3
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
         ),
+        'Psr\\Container\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/container/src',
+        ),
+        'Faker\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/fakerphp/faker/src/Faker',
+        ),
         'App\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
             1 => __DIR__ . '/../..' . '/core',
+            2 => __DIR__ . '/../..' . '/view',
         ),
     );
 

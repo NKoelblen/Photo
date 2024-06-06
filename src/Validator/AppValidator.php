@@ -2,7 +2,7 @@
 
 namespace App\Validator;
 
-class AppValidator extends AbstractValidator
+abstract class AppValidator extends AbstractValidator
 {
 
 }

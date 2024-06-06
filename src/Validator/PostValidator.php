@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Validator;
+
+use App\Repository\PostRepository;
+
+abstract class PostValidator extends AppValidator
+{
+    public function __construct(array $data, PostRepository $table, ?int $id = null)
+    {
+        parent::__construct($data);
+        $this->validator->rule('required', ['title']);
+        $this->validator->rule('lengthBetween', 'title', 3, 250);
+        $this->validator->rule(function ($field, $value) use ($table, $id) {
+            return !$table->exist($field, $value, $id);
+        }, ['title'], 'est déjà utilisé.');
+    }
+}

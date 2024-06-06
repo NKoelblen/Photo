@@ -8,7 +8,7 @@ final class Album extends AbstractMigration
                                           `title` varchar(255) NOT NULL,
                                           `slug` varchar(255) NOT NULL UNIQUE,
                                           `status` varchar(255) NOT NULL DEFAULT 'published',
-                                          `private` tinyint(1) NOT NULL DEFAULT '0',
+                                          `private` json,
                                           PRIMARY KEY (`id`)
                                       )";
 }

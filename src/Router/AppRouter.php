@@ -30,7 +30,7 @@ class AppRouter extends AbstractRouter
             $class = ucfirst($post['singular']) . 'Controller';
 
             $root = "/{$post['plural']}";
-            $single_root = "$root/[*:slug]-[i:id]";
+            $single_root = "$root/[*:slug]";
             $controller = $namespace . $class;
 
             $this->alto_router->map('GET', $root, $controller . '#index', $post['plural']);
@@ -42,8 +42,8 @@ class AppRouter extends AbstractRouter
 
             if ($post['singular'] === 'photo'):
                 $this->alto_router->map('GET|POST', $admin_root, $admin_controller . '#index', "admin_{$post['singular']}");
-                $this->alto_router->map('GET|POST', "$admin_root/trash", $admin_controller . '#trash_index', "{$post['plural']}_trash");
             endif;
+            $this->alto_router->map('GET|POST', "$admin_root/trash", $admin_controller . '#trash_index', "{$post['plural']}_trash");
             $this->alto_router->map('GET|POST', "$admin_root/new", $admin_controller . '#new', "new_{$post['singular']}");
             $this->alto_router->map('GET|POST', $single_admin__root, $admin_controller . '#edit', "edit_{$post['singular']}");
             if ($post['singular'] === 'category' || $post['singular'] === 'photo'):
