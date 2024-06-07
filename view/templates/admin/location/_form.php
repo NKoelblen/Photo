@@ -40,6 +40,15 @@ $form = new Form($form_post, $errors); ?>
 <!-- Form -->
 <form action="" method="POST" class="my-4" enctype="multipart/form-data">
     <?= $form->input('text', 'title', 'Titre'); ?>
+    <?= $form->map('coordinates', 'Carte', ['readonly']); ?>
+    <div class="row g-3">
+        <div class="col">
+            <?= $form->parent_radio('parent_id', 'Parent', $list); ?>
+        </div>
+        <div class="col">
+            <?= $form->children_checkbox('children_ids', 'Enfants', $list); ?>
+        </div>
+    </div>
     <button type="submit"
         class="btn <?= !str_contains($_SERVER['REQUEST_URI'], "{$route['plural']}/new") ? 'btn-primary' : 'btn-success'; ?>">
         <i

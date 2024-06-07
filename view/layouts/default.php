@@ -1,3 +1,7 @@
+<?php if (session_status() === PHP_SESSION_NONE):
+    session_start();
+endif; ?>
+
 <!DOCTYPE html>
 <html lang="fr" data-bs-theme="dark">
 
@@ -11,6 +15,16 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
+    <?php if (str_contains($_SERVER['REQUEST_URI'], 'locations') || $_SERVER['REQUEST_URI'] === '/'): ?>
+        <script src="/assets/libraries/jquery-3.7.1.min.js"></script>
+        <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet.css">
+        <script src="/assets/libraries/leaflet/leaflet.js"></script>
+        <script>
+            let markers = <?= json_encode($markers) ?>;
+        </script>
+        <script src="/assets/js/map.js" defer></script>
+    <?php endif; ?>
+    <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 
 <body class="min-vh-100 d-flex flex-column">
@@ -57,10 +71,7 @@
                     </ul>
                 </div>
                 <ul class="navbar-nav">
-                    <?php if (session_status() === PHP_SESSION_NONE):
-                        session_start();
-                    endif;
-                    if (!isset($_SESSION['auth'])): ?>
+                    <?php if (!isset($_SESSION['auth'])): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= $router->get_alto_router()->generate('login') ?>">
                                 <i class="bi bi-person"></i>

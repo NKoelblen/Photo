@@ -69,7 +69,7 @@ final class AlbumController extends PostController
             $repository->hydrate($form_post, $_POST, ['title']);
             $validator = new AlbumValidator($_POST, $repository, $form_post->get_id());
             if ($validator->validate()):
-                $repository->update_album(
+                $repository->update_albums(
                     [$form_post->get_id()],
                     [
                         'title' => $form_post->get_title(),
@@ -90,7 +90,7 @@ final class AlbumController extends PostController
          * @var AlbumRepository
          */
         $repository = new $this->repository;
-        $repository->update_album(
+        $repository->update_albums(
             [$this->params['id']],
             ['status' => 'trashed'],
             "Impossible de mettre la publication {$this->params['id']} à la corbeille."
@@ -104,7 +104,7 @@ final class AlbumController extends PostController
          */
         $repository = new $this->repository;
         $ids_list = htmlentities(implode(', ', $_POST['bulk']));
-        $repository->update_album(
+        $repository->update_albums(
             $_POST['bulk'],
             ['status' => 'trashed'],
             "Impossible de mettre les publications $ids_list à la corbeille."
@@ -118,7 +118,7 @@ final class AlbumController extends PostController
          * @var AlbumRepository
          */
         $repository = new $this->repository;
-        $repository->update_album(
+        $repository->update_albums(
             [$this->params['id']],
             ['status' => 'published'],
             "Impossible de restaurer la publication {$this->params['id']}."
@@ -132,7 +132,7 @@ final class AlbumController extends PostController
          */
         $repository = new $this->repository;
         $ids_list = htmlentities(implode(', ', $_POST['bulk']));
-        $repository->update_album(
+        $repository->update_albums(
             $_POST['bulk'],
             ['status' => 'published'],
             "Impossible de restaurer les publications $ids_list."
@@ -146,7 +146,7 @@ final class AlbumController extends PostController
          * @var AlbumRepository
          */
         $repository = new $this->repository;
-        $repository->delete_album([$this->params['id']]);
+        $repository->delete_albums([$this->params['id']]);
         header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?delete=1');
     }
     public function bulk_delete(): void
@@ -155,7 +155,7 @@ final class AlbumController extends PostController
          * @var AlbumRepository
          */
         $repository = new $this->repository;
-        $repository->delete_album($_POST['bulk']);
+        $repository->delete_albums($_POST['bulk']);
         header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?delete=2');
     }
 }

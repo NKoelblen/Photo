@@ -11,6 +11,9 @@ final class AlbumRepository extends PostRepository
     protected ?string $table = 'album';
     protected ?string $entity = AlbumEntity::class;
 
+    /**
+     * used for new album
+     */
     public function create_album(array $datas): int
     {
         $fields = [];
@@ -26,20 +29,24 @@ final class AlbumRepository extends PostRepository
         return $this->pdo->lastInsertId();
     }
 
-    public function update_album(array $ids, array $datas, string $message = null): void
+    /**
+     * used for edit, trash, bulk trash, restore & bulk restore albums
+     */
+    public function update_albums(array $ids, array $datas, string $message = null): void
     {
         $fields = [];
         foreach ($datas as $key => $value) {
             $fields[] = "$key = :$key";
         }
         $set = implode(', ', $fields);
-        $in = "";
+        $in = [];
         $ids_params = [];
         foreach ($ids as $id):
             $key = ":id" . $id;
-            $in .= ($in ? ", " : "") . $key;
+            $in[] = $key;
             $ids_params[$key] = $id;
         endforeach;
+        $in = implode(', ', $in);
         $ids_list = implode(', ', $ids);
         $query = $this->pdo->prepare("UPDATE nk_$this->table SET $set WHERE id IN ($in)");
         $edit = $query->execute(array_merge($datas, $ids_params));
@@ -48,27 +55,35 @@ final class AlbumRepository extends PostRepository
         endif;
     }
 
-    public function delete_album(array $ids): void
+    /**
+     * used for delete & bulk delete albums
+     */
+    public function delete_albums(array $ids): void
     {
-        $in = "";
+        $in = [];
         $params = [];
         foreach ($ids as $id):
             $key = ":id" . $id;
-            $in .= ($in ? ", " : "") . $key;
+            $in[] = $key;
             $params[$key] = $id;
         endforeach;
+        $in = implode(', ', $in);
         $list = implode(', ', $ids);
         $query = $this->pdo->prepare("DELETE FROM nk_$this->table WHERE id IN ($in)");
         $delete = $query->execute($params);
         if ($delete === false):
-            throw new Exception("Impossible de supprimer les publisations $list de la table $this->table.");
+            throw new Exception("Impossible de supprimer les publications $list de la table $this->table.");
         endif;
     }
+
+    /**
+     * used for edit album
+     */
     public function find_album(string $field, mixed $value): AlbumEntity
     {
         $field = htmlentities($field);
         $query = $this->pdo->prepare(
-            "SELECT *
+            "SELECT title
              FROM nk_$this->table
              WHERE status = 'published'
              AND $field = :value"
@@ -81,11 +96,17 @@ final class AlbumRepository extends PostRepository
         endif;
         return $result;
     }
+
+    /**
+     * used for admin indexes of albums
+     * 
+     * @return array[Pagination, AlbumEntity[]]
+     */
     public function find_paginated_albums(string $status = 'published', string $order = 'title ASC', int $per_page = 20): array
     {
         $order = htmlentities($order);
         $pagination = new Pagination(
-            "SELECT *
+            "SELECT id, title, slug, private
              FROM nk_$this->table
              WHERE status = :status",
             "SELECT COUNT(id)
@@ -99,11 +120,14 @@ final class AlbumRepository extends PostRepository
         return [$pagination, $entities];
     }
 
+    /**
+     * used for show album
+     */
     public function find_allowed_album(string $field, mixed $value): AlbumEntity
     {
         $field = htmlentities($field);
         $query = $this->pdo->prepare(
-            "SELECT *
+            "SELECT title, slug
              FROM nk_$this->table
              WHERE status = 'published'
              AND private IS NULL
@@ -117,12 +141,16 @@ final class AlbumRepository extends PostRepository
         endif;
         return $result;
     }
+
+    /**
+     * used for home index of albums
+     */
     public function find_allowed_albums(string $order = 'title ASC', ?int $per_page = null): array
     {
         $order = htmlentities($order);
         $limit = $per_page === null ? '' : "LIMIT $per_page";
         $query = $this->pdo->prepare(
-            "SELECT *
+            "SELECT title, slug
              FROM nk_$this->table
              WHERE status = 'published'
              AND private IS NULL
@@ -135,13 +163,15 @@ final class AlbumRepository extends PostRepository
     }
 
     /**
+     * used for public index of albums
+     * 
      * @return array[Pagination, AlbumEntity[]]
      */
     public function find_paginated_allowed_albums(string $order = 'title ASC', int $per_page = 20): array
     {
         $order = htmlentities($order);
         $pagination = new Pagination(
-            "SELECT *
+            "SELECT title, slug
              FROM nk_$this->table
              WHERE status = 'published'
              AND 'private' = 0",

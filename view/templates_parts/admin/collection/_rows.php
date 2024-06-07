@@ -9,7 +9,7 @@
         </a>
     </td>
     <td class="text-center px-3"><?= $post->get_private() ? 'Privée' : ''; ?></td>
-    <td style="white-space: nowrap;" class="px-3">
+    <td class="px-3 nowrap">
         <?php if (str_contains($_SERVER['REQUEST_URI'], '/trash')): ?>
             <!-- Restore -->
             <form

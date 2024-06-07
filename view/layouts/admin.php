@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-bs-theme="dark">
+<html lang="fr" data-bs-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -12,11 +12,29 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
     <script src="/assets/js/admin/checkbox.js" defer></script>
+    <?php if (
+        (
+            str_contains($_SERVER['REQUEST_URI'], 'admin/locations')
+            || str_contains($_SERVER['REQUEST_URI'], 'admin/categories')
+        )
+        && !str_contains($_SERVER['REQUEST_URI'], 'trash')
+    ): ?>
+        <script src="/assets/js/admin/parent_children_selectors.js" defer></script>
+    <?php endif;
+    if (str_contains($_SERVER['REQUEST_URI'], 'admin/locations') && !str_contains($_SERVER['REQUEST_URI'], 'trash')): ?>
+        <script src="/assets/libraries/jquery-3.7.1.min.js"></script>
+        <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet.css">
+        <script src="/assets/libraries/leaflet/leaflet.js"></script>
+        <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet-search.css">
+        <script src="/assets/libraries/leaflet/leaflet-search.js"></script>
+        <script src="/assets/js/admin/map.js" defer></script>
+    <?php endif; ?>
+    <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
 
 <body class="min-vh-100 d-flex flex-column">
     <header>
-        <nav class="navbar navbar-expand-lg bg-dark border-bottom border-body">
+        <nav class="navbar navbar-expand-lg bg-dark border-bottom border-body" data-bs-theme="dark">
             <div class="container">
                 <a class="navbar-brand" href="<?= $router->get_alto_router()->generate('home') ?>">ONOKO Photos</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -108,9 +126,11 @@
 
     </div>
 
-    <footer class="bg-dark py-4 footer mt-auto">
+    <footer class="py-4 footer mt-auto">
         <div class="container">
-            Page générée en <?= round(1000 * (microtime(true) - DEBUG_TIME)); ?> ms
+            <p>Page générée en <?= round(1000 * (microtime(true) - DEBUG_TIME)); ?> ms
+            </p>
+        </div>
     </footer>
 
 </body>
