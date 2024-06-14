@@ -7,7 +7,7 @@ abstract class PostEntity extends AppEntity
 {
     protected string $title = '';
     protected string $slug = '';
-    protected string $status = 'published';
+    protected string $status = 'draft';
     protected string|int|null $private = null;
 
     public function get_title(): string

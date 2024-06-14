@@ -13,12 +13,18 @@ final class Photo extends AbstractMigration
                                           `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
                                           `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                           `album_id` int DEFAULT NULL,
-                                          `location_id` int DEFAULT NULL,
                                           PRIMARY KEY (`id`),
                                           CONSTRAINT `fk_p_album` FOREIGN KEY (`album_id`) REFERENCES `nk_album` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
-                                          CONSTRAINT `fk_p_location` FOREIGN KEY (`location_id`) REFERENCES `nk_location` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
                                       );
                                   
+                                      CREATE TABLE `nk_photo_location` (
+                                          `photo_id` int NOT NULL,
+                                          `location_id` int NOT NULL,
+                                          PRIMARY KEY (`photo_id`, `location_id`),
+                                          CONSTRAINT `fk_pl_location` FOREIGN KEY (`location_id`) REFERENCES `nk_location` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+                                          CONSTRAINT `fk_pl_photo` FOREIGN KEY (`photo_id`) REFERENCES `nk_photo` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+                                      );
+
                                       CREATE TABLE `nk_photo_category` (
                                           `photo_id` int NOT NULL,
                                           `category_id` int NOT NULL,

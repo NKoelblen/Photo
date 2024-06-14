@@ -7,27 +7,22 @@ use AltoRouter;
 class AbstractRouter
 {
     protected AltoRouter $alto_router;
-    protected string $view_path;
-    protected string $e404;
+    protected string $view_path = '';
+    protected string $namespace = 'App\Controller\\';
+    protected string $admin_namespace = '';
+    protected string $class = '';
+    protected string $controller = '';
+
     public function __construct()
     {
         $this->alto_router = new AltoRouter();
+        $this->view_path = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'view/templates/';
+        $this->admin_namespace = "{$this->namespace}Admin\\";
+        $this->controller = $this->namespace . $this->class;
     }
 
     public function get_alto_router()
     {
         return $this->alto_router;
-    }
-
-    public function run()
-    {
-        $router = $this;
-        $view_path = $this->view_path;
-        $match = $this->alto_router->match();
-        $target = $match['target'] ?? $this->e404;
-        $params = $match['params'] ?? [];
-        [$controller, $method] = explode('#', $target, 2);
-        (new $controller($router, $view_path, $params))->$method();
-        return $this;
     }
 }

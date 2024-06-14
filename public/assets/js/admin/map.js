@@ -24,7 +24,7 @@ jQuery(function ($) {
 	}).addTo(map);
 
 	let marker = {};
-	let latlng = $('#map').next().val();
+	let latlng = $('#coordinates').val();
 	if (latlng) {
 		marker = L.marker(latlng.split(','), { draggable: true }).addTo(map);
 
@@ -34,14 +34,12 @@ jQuery(function ($) {
 			let newPos = e.target.getLatLng();
 			lat = newPos.lat.toFixed(5);
 			lng = newPos.lng.toFixed(5);
-			$('#map')
-				.next()
-				.val(lat + ',' + lng);
+			$('#coordinates').val(lat + ',' + lng);
 		});
 
 		marker.on('click', function (e) {
 			map.removeLayer(marker);
-			$('#map').next().val('');
+			$('#coordinates').val('');
 		});
 	} else {
 		map.setView([48.5112, 2.2055], 4);
@@ -58,22 +56,18 @@ jQuery(function ($) {
 
 		//Add a marker.
 		marker = L.marker(e.latlng, { draggable: true }).addTo(map);
-		$('#map')
-			.next()
-			.val(lat + ', ' + lng);
+		$('#coordinates').val(lat + ', ' + lng);
 
 		marker.on('dragend', function (e) {
 			let newPos = e.target.getLatLng();
 			lat = newPos.lat.toFixed(5);
 			lng = newPos.lng.toFixed(5);
-			$('#map')
-				.next()
-				.val(lat + ', ' + lng);
+			$('#coordinates').val(lat + ', ' + lng);
 		});
 
 		marker.on('click', function (e) {
 			map.removeLayer(marker);
-			$('#map').next().val('');
+			$('#coordinates').val('');
 		});
 	});
 
@@ -103,22 +97,18 @@ jQuery(function ($) {
 
 			//Add a marker.
 			marker = L.marker(e.latlng, { draggable: true }).addTo(map);
-			$('#map')
-				.next()
-				.val(lat + ', ' + lng);
+			$('#coordinates').val(lat + ', ' + lng);
 
 			marker.on('dragend', function (e) {
 				let newPos = e.target.getLatLng();
 				lat = newPos.lat.toFixed(5);
 				lng = newPos.lng.toFixed(5);
-				$('#map')
-					.next()
-					.val(lat + ', ' + lng);
+				$('#coordinates').val(lat + ', ' + lng);
 			});
 
 			marker.on('click', function (e) {
 				map.removeLayer(marker);
-				$('#map').next().val('');
+				$('#coordinates').val('');
 			});
 		})
 	);

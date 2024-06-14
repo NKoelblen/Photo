@@ -1,55 +1,44 @@
 <?php
 namespace App\Controller\Admin;
 
+use App\Entity\RecursiveEntity;
+use App\Repository\RecursiveRepository;
+
 abstract class RecursiveController extends PostController
 {
-    public function index()
+    public function draft(array $ids, array $datas = []): void
     {
-
-    }
-    public function trash_index()
-    {
-
-    }
-
-    public function new()
-    {
-
-    }
-
-    public function edit()
-    {
-
-    }
-    public function bulk_edit()
-    {
-
+        /**
+         * @var RecursiveRepository
+         */
+        $repository = new $this->repository;
+        /**
+         * @var RecursiveEntity[]
+         */
+        $posts = $repository->find_recursives($ids);
+        foreach ($posts as $post):
+            if ($post->get_children_ids()):
+                $this->draft($post->get_children_ids());
+            endif;
+        endforeach;
+        $this->edit_status($ids, 'draft', $datas);
     }
 
-    public function trash()
+    public function trash(array $ids): void
     {
-
-    }
-    public function bulk_trash()
-    {
-
-    }
-
-    public function restore()
-    {
-
-    }
-    public function bulk_restore()
-    {
-
-    }
-
-    public function delete()
-    {
-
-    }
-    public function bulk_delete()
-    {
-
+        /**
+         * @var RecursiveRepository
+         */
+        $repository = new $this->repository;
+        $posts = $repository->find_recursives($ids);
+        foreach ($posts as $post):
+            if ($post->get_children_ids()):
+                $repository->update_recursives(
+                    $post->get_children_ids(),
+                    ['parent_id' => $post->get_parent_id()]
+                );
+            endif;
+        endforeach;
+        $this->edit_status($ids, 'trashed', ['parent_id' => null]);
     }
 }

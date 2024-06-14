@@ -12,6 +12,8 @@ return array(
     'Symfony\\Component\\VarDumper\\' => array($vendorDir . '/symfony/var-dumper'),
     'Psr\\Log\\' => array($vendorDir . '/psr/log/src'),
     'Psr\\Container\\' => array($vendorDir . '/psr/container/src'),
+    'Intervention\\Image\\' => array($vendorDir . '/intervention/image/src'),
+    'Intervention\\Gif\\' => array($vendorDir . '/intervention/gif/src'),
     'Faker\\' => array($vendorDir . '/fakerphp/faker/src/Faker'),
     'App\\' => array($baseDir . '/src', $baseDir . '/core', $baseDir . '/view'),
 );

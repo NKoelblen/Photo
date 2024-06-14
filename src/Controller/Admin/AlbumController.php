@@ -2,160 +2,200 @@
 namespace App\Controller\Admin;
 
 use App\Entity\AlbumEntity;
+use App\Helpers\Text;
 use App\Repository\AlbumRepository;
 use App\Validator\AlbumValidator;
 
 final class AlbumController extends PostController
 {
     protected string $table = 'album';
+    protected array $labels = [
+        'gender' => 'masculine',
+        'start-with-vowel' => true,
+        'singular' => "album",
+        'plural' => 'albums'
+    ];
 
-    public function index(): array
-    {
-        [$pagination, $posts] = (new $this->repository)->find_paginated_albums();
-        $link = $this->router->get_alto_router()->generate("new_{$this->table}");
-        $route = ['singular' => 'album', 'plural' => 'albums'];
-        return compact('posts', 'pagination', 'link', 'route');
-    }
-    public function trash_index()
+    public function index()
     {
         $title = 'Albums';
-        [$pagination, $posts] = (new $this->repository)->find_paginated_albums('trashed');
-        $link = $this->router->get_alto_router()->generate('albums');
-        $route = ['singular' => 'album', 'plural' => 'albums'];
-        return $this->render("admin/collection/index", compact('title', 'posts', 'pagination', 'link', 'route'));
+
+        /**
+         * @var AlbumRepository
+         */
+        $repository = new $this->repository;
+        $status_count = $repository->count_by_status();
+        if (empty($status_count)):
+            $status = 'published';
+        else:
+            if (!isset($status_count['published'])):
+                if (isset($status_count['draft'])):
+                    $status = $_GET['index-status'] ?? 'draft';
+                else:
+                    $status = 'trashed';
+                endif;
+            else:
+                $status = $_GET['index-status'] ?? 'published';
+            endif;
+        endif;
+
+        $table = $this->table;
+        $data = array_merge(
+            compact('title', 'status_count', 'status', 'table'),
+            ['labels' => $this->labels],
+            $this->index_part($status)
+        );
+        if ((!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed'):
+            $data = array_merge($data, $this->new_part());
+        endif;
+
+        return $this->render(
+            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed' ? "admin/$table/new" : "admin/$table/index",
+            $data
+        );
     }
 
-    public function new()
+    private function index_part(string $status): array
     {
-        $title = 'Albums';
+        /**
+         * @var AlbumRepository
+         */
+        $repository = new $this->repository;
+        [$pagination, $posts] = $repository->find_paginated_albums($status);
+        $link = $this->router->get_alto_router()->generate("admin-$this->table");
+        return compact('posts', 'pagination', 'link');
+    }
+
+    public function new_part(): array
+    {
         $form_post = new AlbumEntity;
-        $success = false;
         $errors = [];
+
+        /**
+         * @var AlbumRepository
+         */
+        $repository = new $this->repository;
+
         if (!empty($_POST)):
-            /**
-             * @var AlbumRepository
-             */
-            $repository = new $this->repository;
-            $repository->hydrate($form_post, $_POST, ['title']);
+            $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
+            $fields_to_hydrate = [];
+            foreach ($_POST as $key => $value):
+                $fields_to_hydrate[] = $key;
+            endforeach;
+
+            $repository->hydrate($form_post, $_POST, $fields_to_hydrate);
+
             $validator = new AlbumValidator($_POST, $repository);
             if ($validator->validate()):
-                $new_post = $repository->create_album([
-                    'title' => $form_post->get_title(),
-                    'slug' => $form_post->get_slug()
-                ]);
-                header('Location: ' . $this->router->get_alto_router()->generate("edit_{$this->table}", ['id' => $new_post]) . '?success=1');
+
+                $datas_to_set = [];
+                foreach ($_POST as $key => $value):
+                    $get_value = "get_$key";
+                    $datas_to_set[$key] = $form_post->$get_value();
+                endforeach;
+
+                $new_post = $repository->create_post($datas_to_set);
+
+                $status = $form_post->get_status();
+                $query = [$status => 1];
+                if ($status !== 'published'):
+                    $query['index-status'] = $status;
+                endif;
+                $query_string = '?' . http_build_query($query);
+                header('Location: ' . $this->router->get_alto_router()->generate("admin-$this->table-edit", ['id' => $new_post]) . $query_string);
             else:
                 $errors = $validator->errors();
             endif;
         endif;
-        return $this->render("admin/collection/new", array_merge(compact('title', 'form_post', 'success', 'errors'), $this->index()));
+        return compact('form_post', 'errors');
     }
 
     public function edit()
     {
+        if (isset($this->params['id'])):
+            $id = $this->params['id'];
+            $ids = [$id];
+        elseif (isset($_POST['bulk'])):
+            $ids = $_POST['bulk'];
+        endif;
+
+        if (isset($_GET['status'])):
+            $this->edit_status($ids, $_GET['status']);
+            exit;
+        endif;
+
         $title = 'Albums';
-        $id = $this->params['id'];
+
         /**
          * @var AlbumRepository
          */
         $repository = new $this->repository;
-        $form_post = $repository->find_album('id', $id);
-        $success = false;
-        if (isset($_GET['success'])):
-            $success = true;
+
+        $status_count = $repository->count_by_status();
+        if (empty($status_count)):
+            $status = 'published';
+        else:
+            if (!isset($status_count['published'])):
+                if (isset($status_count['draft'])):
+                    $status = $_GET['index-status'] ?? 'draft';
+                else:
+                    $status = 'trashed';
+                endif;
+            else:
+                $status = $_GET['index-status'] ?? 'published';
+            endif;
         endif;
+
+        $table = $this->table;
+
+        $form_post = $repository->find_album('id', $id);
         $errors = [];
         if (!empty($_POST)):
-            $repository->hydrate($form_post, $_POST, ['title']);
-            $validator = new AlbumValidator($_POST, $repository, $form_post->get_id());
+            $fields_to_hydrate = ['id'];
+            foreach ($_POST as $key => $value):
+                $get_value = "get_$key";
+                if ($form_post->$get_value() != $value):
+                    $fields_to_hydrate[] = $key;
+                endif;
+            endforeach;
+
+            $repository->hydrate($form_post, array_merge($_POST, ['id' => $id]), $fields_to_hydrate);
+            $id = $form_post->get_id();
+
+            $validator = new AlbumValidator($_POST, $repository, $id);
             if ($validator->validate()):
-                $repository->update_albums(
-                    [$form_post->get_id()],
-                    [
-                        'title' => $form_post->get_title(),
-                        'slug' => $form_post->get_slug(),
-                    ]
+
+                $datas_to_set = [];
+                foreach ($_POST as $key => $value):
+                    if ($key !== 'children_ids'):
+                        $get_value = "get_$key";
+                        $datas_to_set[$key] = $form_post->$get_value();
+                    endif;
+                endforeach;
+                $repository->update_posts(
+                    [$id],
+                    $datas_to_set
                 );
-                $success = true;
+
+                $status = $form_post->get_status();
+                $query = [$status => 1];
+                if ($status !== 'published'):
+                    $query['index-status'] = $status;
+                endif;
+                $query_string = '?' . http_build_query($query);
+                header('Location: ' . $this->router->get_alto_router()->generate("admin-$table-edit", ['id' => $id]) . $query_string);
             else:
                 $errors = $validator->errors();
             endif;
         endif;
-        return $this->render("admin/collection/edit", array_merge(compact('title', 'form_post', 'success', 'errors'), $this->index()));
-    }
 
-    public function trash(): void
-    {
-        /**
-         * @var AlbumRepository
-         */
-        $repository = new $this->repository;
-        $repository->update_albums(
-            [$this->params['id']],
-            ['status' => 'trashed'],
-            "Impossible de mettre la publication {$this->params['id']} à la corbeille."
+        return $this->render(
+            "admin/$table/edit",
+            array_merge(
+                compact('title', 'form_post', 'errors', 'status_count', 'status', 'table'),
+                ['labels' => $this->labels],
+                $this->index_part($status)
+            )
         );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?trash=1');
-    }
-    public function bulk_trash(): void
-    {
-        /**
-         * @var AlbumRepository
-         */
-        $repository = new $this->repository;
-        $ids_list = htmlentities(implode(', ', $_POST['bulk']));
-        $repository->update_albums(
-            $_POST['bulk'],
-            ['status' => 'trashed'],
-            "Impossible de mettre les publications $ids_list à la corbeille."
-        );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?trash=2');
-    }
-
-    public function restore(): void
-    {
-        /**
-         * @var AlbumRepository
-         */
-        $repository = new $this->repository;
-        $repository->update_albums(
-            [$this->params['id']],
-            ['status' => 'published'],
-            "Impossible de restaurer la publication {$this->params['id']}."
-        );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?restore=1');
-    }
-    public function bulk_restore(): void
-    {
-        /**
-         * @var AlbumRepository
-         */
-        $repository = new $this->repository;
-        $ids_list = htmlentities(implode(', ', $_POST['bulk']));
-        $repository->update_albums(
-            $_POST['bulk'],
-            ['status' => 'published'],
-            "Impossible de restaurer les publications $ids_list."
-        );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?restore=2');
-    }
-
-    public function delete(): void
-    {
-        /**
-         * @var AlbumRepository
-         */
-        $repository = new $this->repository;
-        $repository->delete_albums([$this->params['id']]);
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?delete=1');
-    }
-    public function bulk_delete(): void
-    {
-        /**
-         * @var AlbumRepository
-         */
-        $repository = new $this->repository;
-        $repository->delete_albums($_POST['bulk']);
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?delete=2');
     }
 }

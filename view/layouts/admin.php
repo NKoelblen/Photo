@@ -12,16 +12,26 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
     <script src="/assets/js/admin/checkbox.js" defer></script>
+    <script src="/assets/js/querystring.js" defer></script>
     <?php if (
         (
-            str_contains($_SERVER['REQUEST_URI'], 'admin/locations')
-            || str_contains($_SERVER['REQUEST_URI'], 'admin/categories')
+            str_contains($_SERVER['REQUEST_URI'], 'admin/location')
+            || str_contains($_SERVER['REQUEST_URI'], 'admin/categorie')
         )
-        && !str_contains($_SERVER['REQUEST_URI'], 'trash')
+        && (
+            !isset($_GET['status'])
+            || $_GET['status'] !== 'trashed'
+        )
     ): ?>
         <script src="/assets/js/admin/parent_children_selectors.js" defer></script>
     <?php endif;
-    if (str_contains($_SERVER['REQUEST_URI'], 'admin/locations') && !str_contains($_SERVER['REQUEST_URI'], 'trash')): ?>
+    if (
+        str_contains($_SERVER['REQUEST_URI'], 'admin/location')
+        && (
+            !isset($_GET['status'])
+            || $_GET['status'] !== 'trashed'
+        )
+    ): ?>
         <script src="/assets/libraries/jquery-3.7.1.min.js"></script>
         <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet.css">
         <script src="/assets/libraries/leaflet/leaflet.js"></script>
@@ -63,28 +73,21 @@
                         <?php if (session_status() === PHP_SESSION_NONE):
                             session_start();
                         endif;
-                        // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/photos' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('admin_photo') ?>">Photos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/categories' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('new_category') ?>">Catégories</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/locations') ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('new_location') ?>">Emplacements</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], '/admin/albums') ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('new_album') ?>">Albums</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/admin/users' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('admin_user') ?>">Utilisateurs</a>
-                        </li>
-                        <?php // endif; ?>
+                        // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'):
+                        $controllers = [
+                            'photo' => 'Photos',
+                            'category' => 'Catégories',
+                            'location' => 'Emplacements',
+                            'album' => 'Albums',
+                            'user' => 'Utilisateurs'
+                        ];
+                        foreach ($controllers as $controller => $label): ?>
+                            <li class="nav-item">
+                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === "/admin/$controller" ? 'active' : ''; ?>"
+                                    href="<?= $router->get_alto_router()->generate("admin-$controller") ?>"><?= $label; ?></a>
+                            </li>
+                        <?php endforeach;
+                        // endif; ?>
                     </ul>
                 </div>
                 <ul class="navbar-nav">
@@ -96,9 +99,9 @@
                         <ul class="dropdown-menu">
                             <li>
                                 <a class="dropdown-item
-                                <!-- $_SERVER['REQUEST_URI'] === ('/admin/users/' . $_SESSION['auth']) ? 'active' : '' -->
+                                <!-- $_SERVER['REQUEST_URI'] === '/profile' ? 'active' : '' -->
                                 " href="
-                                    <!-- $router->get_alto_router()->generate('edit_profile', ['id' => $_SESSION['auth']]) -->
+                                    <?= $router->get_alto_router()->generate('profile') ?>
                                     ">
                                     Mon Profil
                                 </a>

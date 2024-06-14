@@ -14,14 +14,4 @@ abstract class AppController extends AbstractController
         parent::__construct($router, $view_path, $params);
         $this->repository = 'App\Repository\\' . ucfirst($this->table) . 'Repository';
     }
-
-    public function index()
-    {
-
-    }
-
-    public function show()
-    {
-
-    }
 }

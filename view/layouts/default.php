@@ -15,13 +15,18 @@ endif; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
-    <?php if (str_contains($_SERVER['REQUEST_URI'], 'locations') || $_SERVER['REQUEST_URI'] === '/'): ?>
+    <script src="/assets/js/querystring.js" defer></script>
+    <script src="/assets/js/lightbox.js" defer></script>
+    <?php if (str_contains($_SERVER['REQUEST_URI'], '/location') || $_SERVER['REQUEST_URI'] === '/'): ?>
         <script src="/assets/libraries/jquery-3.7.1.min.js"></script>
         <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet.css">
         <script src="/assets/libraries/leaflet/leaflet.js"></script>
         <script>
             let markers = <?= json_encode($markers) ?>;
         </script>
+        <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet.markercluster/dist/MarkerCluster.css">
+        <link rel="stylesheet" href="/assets/libraries/leaflet/leaflet.markercluster/dist/MarkerCluster.Default.css">
+        <script src="/assets/libraries/leaflet/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
         <script src="/assets/js/map.js" defer></script>
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/style.css">
@@ -44,30 +49,20 @@ endif; ?>
                                 <i class="bi bi-house"></i>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/albums' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('albums') ?>">
-                                Albums
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/locations' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('locations') ?>">
-                                Emplacements
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/categories' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('categories') ?>">
-                                Catégories
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/photos' ? 'active' : ''; ?>"
-                                href="<?= $router->get_alto_router()->generate('photos') ?>">
-                                Toutes les photos
-                            </a>
-                        </li>
+                        <?php $controllers = [
+                            'album' => 'Albums',
+                            'location' => 'Emplacements',
+                            'category' => 'Catégories',
+                            'photo' => 'Toutes les Photos'
+                        ];
+                        foreach ($controllers as $controller => $label): ?>
+                            <li class="nav-item">
+                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === "/$controller" ? 'active' : ''; ?>"
+                                    href="<?= $router->get_alto_router()->generate($controller) ?>">
+                                    <?= $label; ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
                     </ul>
                 </div>
                 <ul class="navbar-nav">
@@ -90,8 +85,8 @@ endif; ?>
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item <?= $_SERVER['REQUEST_URI'] === ('/admin/users/' . $_SESSION['auth']) ? 'active' : ''; ?>"
-                                        href="<?= $router->get_alto_router()->generate('edit_profile', ['id' => $_SESSION['auth']]) ?>">
+                                    <a class="dropdown-item <?= $_SERVER['REQUEST_URI'] === '/profile' . $_SESSION['auth'] ? 'active' : ''; ?>"
+                                        href="<?= $router->get_alto_router()->generate('profile'); ?>">
                                         Mon Profil
                                     </a>
                                 </li>

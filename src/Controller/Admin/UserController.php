@@ -3,6 +3,14 @@ namespace App\Controller\Admin;
 
 final class UserController extends AdminController
 {
+    protected string $table = 'user';
+    protected array $labels = [
+        'gender' => 'masculine',
+        'start-with-vowel' => true,
+        'singular' => "utilisateur",
+        'plural' => 'utilisateurs'
+    ];
+
     public function index()
     {
         $title = 'Utilisateurs';

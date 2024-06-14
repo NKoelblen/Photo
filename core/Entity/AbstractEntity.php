@@ -10,4 +10,9 @@ class AbstractEntity
     {
         return $this->id;
     }
+    public function set_id(?int $id): self
+    {
+        $this->id = $id;
+        return $this;
+    }
 }

@@ -1,20 +1,37 @@
-<h1 class="my-4"><?= $title ?></h1>
+<?php
+use App\HTML\AlbumHTML;
+use App\HTML\AppHTML;
+use App\HTML\CategoryHTML;
+use App\HTML\LocationHTML;
+use App\HTML\PhotoHTML;
+use App\HTML\YearHTML;
 
-<section class="my-4">
+$HTML = new AppHTML($router);
+echo $HTML->head($title); ?>
+
+<section class="my-5">
     <h2 class="my-4">Albums</h2>
-    <?php
-    $posts = $albums;
-    $link = $album_link;
-    $route = $album_route;
-    require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'templates_parts/collection/index.php'; ?>
+    <?php $album_HTML = new AlbumHTML($router, $album_controller);
+    echo $album_HTML->collection_index($albums); ?>
 </section>
 
-<section class="my-4">
+<section class="my-5">
     <h2 class="my-4">Emplacements</h2>
+    <?php $location_HTML = new LocationHTML($router, $location_controller);
+    echo $location_HTML->collection_index($locations);
+    echo $location_HTML->map(); ?>
+</section>
+
+<section class="my-5">
+    <h2 class="my-4">Catégories</h2>
     <?php
-    $posts = $locations;
-    $link = $location_link;
-    $route = $location_route;
-    require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'templates_parts/collection/recursive/index.php';
-    require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'templates_parts/collection/map.php'; ?>
+    // $category_HTML = new CategoryHTML($router);
+    // echo $category_HTML->collection_index($categories); ?>
+</section>
+
+<section class="my-5">
+    <h2 class="my-4">Années</h2>
+    <?php
+    $year_HTML = new YearHTML($router, $years_controller);
+    echo $year_HTML->year_index($years); ?>
 </section>

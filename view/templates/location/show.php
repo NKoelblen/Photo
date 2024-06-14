@@ -1,23 +1,17 @@
-<?php require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'templates_parts/head.php';
+<?php
+use App\HTML\LocationHTML;
+use App\HTML\PhotoHTML;
 
-if ($post->get_ascendants()): ?>
-    <nav id="location-breadcrumb" aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <?php foreach ($post->get_ascendants() as $ascendant): ?>
-                <li class="breadcrumb-item">
-                    <a href="<?= $router->get_alto_router()->generate($route, ['slug' => $ascendant->get_slug()]); ?>">
-                        <?= $ascendant->get_title(); ?>
-                    </a>
-                </li>
-            <?php endforeach; ?>
-        </ol>
-    </nav>
-<?php endif;
-
+$HTML = new LocationHTML($router, $table);
+echo $HTML->head($title);
+echo $HTML->recursive_breadcrumb($post);
 if ($post->get_children()):
-    $posts = $post->get_children();
-    $route = 'location';
-    require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'templates_parts/collection/recursive/index.php';
+    echo $HTML->collection_index($post->get_children());
 endif;
+echo $HTML->map();
 
-require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'templates_parts/collection/map.php';
+$photo_HTML = new PhotoHTML($router, 'photo');
+echo $photo_HTML->filter([], $filter_categories);
+echo $photo_HTML->photo_index($photos);
+echo $photo_HTML->lightbox($photos);
+echo $photo_HTML->pagination($pagination, $link);

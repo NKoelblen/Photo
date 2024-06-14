@@ -14,77 +14,47 @@ $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
 // $pdo->exec('TRUNCATE TABLE nk_category');
 // $pdo->exec('TRUNCATE TABLE nk_photo_category');
 // $pdo->exec('TRUNCATE TABLE nk_album');
-// $pdo->exec('TRUNCATE TABLE nk_photo_album');
 // $pdo->exec('TRUNCATE TABLE nk_user');
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 
-// $photos = [];
-// $categories = [];
+$photos = [];
 
-// for ($i = 51; $i <= 150; $i++):
-//     $slug = $faker->unique()->slug(1, false);
-//     $title = ucwords($slug);
-
-//     $pdo->exec("INSERT INTO nk_photo 
-//     SET title='$title', 
-//     slug='$slug', 
-//     description='{$faker->sentence()}', 
-//     created_at='{$faker->date()}',
-//     path='https://picsum.photos/id/$i/1024/768'");
-
-//     $photos[] = $pdo->lastInsertId();
+// for ($i = 51; $i <= 800; $i++):
+//     $slug = $faker->unique()->slug(rand(1, 5), false);
+//     $title = ucfirst(str_replace('-', ' ', $slug));
+//     $date = $faker->dateTimeThisDecade()->format('Y-m-d');
+//     $album_id = rand(1, 25);
+//     $pdo->exec(
+//         "INSERT INTO nk_photo 
+//          SET title = '$title', 
+//          slug = '$slug', 
+//          description = '$title', 
+//          created_at = '$date',
+//          path = 'https://picsum.photos/id/$i/1024/768',
+//          album_id = $album_id"
+//     );
 // endfor;
 
-// for ($i = 1; $i <= 10; $i++):
-//     $items[] = null;
-//     for ($j = 1; $j <= 10; $j++):
-//         $items[] = $j;
-//     endfor;
-//     unset($items[$i]);
-//     $slug = $faker->unique()->slug(1, false);
-//     $title = ucwords($slug);
-//     $parent = (int) $faker->randomElement($items);
+for ($i = 1; $i <= 750; $i++):
+    $photos[] = $i;
+endfor;
 
-//     $pdo->exec("INSERT INTO nk_category 
-//     SET title='$title', slug='$slug', parent='$parent'");
+$query = $pdo->query('SELECT id FROM nk_category');
+$categories = $query->fetchAll(PDO::FETCH_COLUMN);
 
-//     $categories[] = $pdo->lastInsertId();
-// endfor;
+foreach ($photos as $photo):
+    $random_categories = $faker->randomElements($categories, rand(1, 2));
+    foreach ($random_categories as $category):
+        $pdo->exec("INSERT INTO nk_photo_category SET photo_id=$photo, category_id=$category");
+    endforeach;
+endforeach;
 
-// for ($i = 1; $i <= 100; $i++):
-//     $photos[] = $i;
-// endfor;
-
-// $categories = [1, 5, 6, 4, 3, 2];
-
-// foreach ($photos as $photo):
-//     $random_categories = $faker->randomElements($categories, rand(1, 3));
-//     foreach ($random_categories as $category):
-//         $pdo->exec("INSERT INTO nk_photo_category SET photo_id=$photo, category_id=$category");
-//     endforeach;
-// endforeach;
-
-// $locations = [12, 13, 9, 10, 8, 16, 17, 15, 18, 6, 3, 4, 5, 20, 19];
+// $locations = [1, 2, 3];
 
 // foreach ($photos as $photo):
 //     $random_location = $faker->randomElement($locations);
 //     $pdo->exec("UPDATE nk_photo SET location_id = $random_location WHERE id = $photo");
 // endforeach;
 
-for ($k = 1; $k <= 25; $k++):
-    $slug = $faker->unique()->slug(1, false);
-    $title = ucwords($slug);
-
-    $pdo->exec("INSERT INTO nk_album SET title='$title', slug='$slug'");
-endfor;
-
-
-// foreach ($photos as $photo):
-//     $random_albums = $faker->randomElements($albums, rand(1, 3));
-//     foreach ($random_albums as $album):
-//         $pdo->exec("INSERT INTO nk_photo_album SET photo_id=$photo, album_id=$album");
-//     endforeach;
-// endforeach;
-
 // $password = password_hash('admin', HASH);
-// $pdo->exec("INSERT INTO nk_user SET login='Onoko', email='hello@onoko.dev', password = '$password'");
+// $pdo->exec("INSERT INTO nk_user SET login='admin', email='test@onoko.dev', password = '$password'");

@@ -31,6 +31,11 @@ class ComposerStaticInitcdc540639fbf1cb4b940a9197d9773c3
             'Psr\\Log\\' => 8,
             'Psr\\Container\\' => 14,
         ),
+        'I' => 
+        array (
+            'Intervention\\Image\\' => 19,
+            'Intervention\\Gif\\' => 17,
+        ),
         'F' => 
         array (
             'Faker\\' => 6,
@@ -65,6 +70,14 @@ class ComposerStaticInitcdc540639fbf1cb4b940a9197d9773c3
         'Psr\\Container\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/container/src',
+        ),
+        'Intervention\\Image\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/intervention/image/src',
+        ),
+        'Intervention\\Gif\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/intervention/gif/src',
         ),
         'Faker\\' => 
         array (

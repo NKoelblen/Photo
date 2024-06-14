@@ -9,43 +9,87 @@ use App\Validator\LocationValidator;
 final class LocationController extends RecursiveController
 {
     protected string $table = 'location';
+    protected array $labels = [
+        'gender' => 'masculine',
+        'start-with-vowel' => true,
+        'singular' => "emplacement",
+        'plural' => 'emplacements'
+    ];
 
     public function index()
     {
-        [$pagination, $posts] = (new $this->repository)->find_paginated_locations();
-        $link = $this->router->get_alto_router()->generate("new_{$this->table}");
-        $route = ['singular' => 'location', 'plural' => 'locations'];
-        return compact('posts', 'pagination', 'link', 'route');
-    }
-    public function trash_index()
-    {
         $title = 'Emplacements';
-        [$pagination, $posts] = (new $this->repository)->find_paginated_trashed_locations();
-        $link = $this->router->get_alto_router()->generate('locations');
-        $route = ['singular' => 'location', 'plural' => 'locations'];
-        return $this->render("admin/collection/index", compact('title', 'posts', 'pagination', 'link', 'route'));
-    }
 
-    public function new()
-    {
-        $title = 'Emplacements';
-        $form_post = new LocationEntity;
         /**
          * @var LocationRepository
          */
         $repository = new $this->repository;
-        $list = $repository->list_locations();
-        $success = false;
+        $status_count = $repository->count_by_status();
+        if (empty($status_count)):
+            $status = 'published';
+        else:
+            if (!isset($status_count['published'])):
+                if (isset($status_count['draft'])):
+                    $status = $_GET['index-status'] ?? 'draft';
+                else:
+                    $status = 'trashed';
+                endif;
+            else:
+                $status = $_GET['index-status'] ?? 'published';
+            endif;
+        endif;
+
+        $table = $this->table;
+        $data = array_merge(
+            compact('title', 'status_count', 'status', 'table'),
+            ['labels' => $this->labels],
+            $this->index_part($status)
+        );
+        if ((!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed'):
+            $data = array_merge($data, $this->new_part());
+        endif;
+
+        return $this->render(
+            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed' ? "admin/$table/new" : "admin/$table/index",
+            $data
+        );
+    }
+
+    private function index_part(string $status): array
+    {
+        /**
+         * @var LocationRepository
+         */
+        $repository = new $this->repository;
+        [$pagination, $posts] = $repository->find_paginated_locations($status);
+        $link = $this->router->get_alto_router()->generate("admin-$this->table");
+        return compact('posts', 'pagination', 'link');
+    }
+
+    public function new_part(): array
+    {
+        $form_post = new LocationEntity;
         $errors = [];
+
+        /**
+         * @var LocationRepository
+         */
+        $repository = new $this->repository;
+
+        $list = $repository->list_locations();
+
         if (!empty($_POST)):
             $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
             $fields_to_hydrate = [];
             foreach ($_POST as $key => $value):
                 $fields_to_hydrate[] = $key;
             endforeach;
+
             $repository->hydrate($form_post, $_POST, $fields_to_hydrate);
+
             $validator = new LocationValidator($_POST, [], $repository);
             if ($validator->validate()):
+
                 $datas_to_set = [];
                 foreach ($_POST as $key => $value):
                     if ($key !== 'children_ids'):
@@ -53,45 +97,89 @@ final class LocationController extends RecursiveController
                         $datas_to_set[$key] = $form_post->$get_value();
                     endif;
                 endforeach;
-                $new_post = $repository->create_location(
+
+                $new_post = $repository->create_recursive(
                     $datas_to_set,
                     $_POST['children_ids'] ?? null
                 );
-                header('Location: ' . $this->router->get_alto_router()->generate("edit_{$this->table}", ['id' => $new_post]) . '?success=1');
+
+                $status = $form_post->get_status();
+                $query = [$status => 1];
+                if ($status !== 'published'):
+                    $query['index-status'] = $status;
+                endif;
+                $query_string = '?' . http_build_query($query);
+                header('Location: ' . $this->router->get_alto_router()->generate("admin-$this->table-edit", ['id' => $new_post]) . $query_string);
             else:
                 $errors = $validator->errors();
             endif;
         endif;
-        return $this->render("admin/location/new", array_merge(compact('title', 'form_post', 'list', 'success', 'errors'), $this->index()));
+        return compact('form_post', 'list', 'errors');
     }
 
     public function edit()
     {
+        if (isset($this->params['id'])):
+            $id = $this->params['id'];
+            $ids = [$id];
+        elseif (isset($_POST['bulk'])):
+            $ids = $_POST['bulk'];
+        endif;
+
+        if (isset($_GET['status'])):
+            if ($_GET['status'] === 'trashed'):
+                $this->trash($ids);
+                exit;
+            elseif ($_GET['status'] === 'draft'):
+                $this->draft($ids, ['parent_id' => null]);
+                exit;
+            else:
+                $this->edit_status($ids, $_GET['status']);
+                exit;
+            endif;
+        endif;
+
         $title = "Emplacements";
-        $id = $this->params['id'];
+
         /**
          * @var LocationRepository
          */
         $repository = new $this->repository;
+
+        $status_count = $repository->count_by_status();
+        if (empty($status_count)):
+            $status = 'published';
+        else:
+            if (!isset($status_count['published'])):
+                if (isset($status_count['draft'])):
+                    $status = $_GET['index-status'] ?? 'draft';
+                else:
+                    $status = 'trashed';
+                endif;
+            else:
+                $status = $_GET['index-status'] ?? 'published';
+            endif;
+        endif;
+
+        $table = $this->table;
+
         $form_post = $repository->find_location('id', $id);
         $list = $repository->list_locations();
-        $success = false;
-        if (isset($_GET['success'])):
-            $success = true;
-        endif;
         $errors = [];
         if (!empty($_POST)):
-            $fields_to_hydrate = [];
+            $fields_to_hydrate = ['id'];
             foreach ($_POST as $key => $value):
-                $fields_to_hydrate[] = $key;
-                if ($key !== 'children_ids'):
-                    $get_value = "get_$key";
-                    $datas_to_set[$key] = $form_post->$get_value();
+                $get_value = "get_$key";
+                if ($form_post->$get_value() != $value):
+                    $fields_to_hydrate[] = $key;
                 endif;
             endforeach;
-            $repository->hydrate($form_post, $_POST, $fields_to_hydrate);
-            $validator = new LocationValidator($_POST, [], $repository, $form_post->get_id());
+            $repository->hydrate($form_post, array_merge($_POST, ['id' => $id]), $fields_to_hydrate);
+            $id = $form_post->get_id();
+
+            $validator = new LocationValidator($_POST, [], $repository, $id);
             if ($validator->validate()):
+
                 $datas_to_set = [];
                 foreach ($_POST as $key => $value):
                     if ($key !== 'children_ids'):
@@ -99,119 +187,32 @@ final class LocationController extends RecursiveController
                         $datas_to_set[$key] = $form_post->$get_value();
                     endif;
                 endforeach;
-                $repository->update_locations(
-                    [$form_post->get_id()],
+                $repository->update_recursives(
+                    [$id],
                     $datas_to_set,
                     $_POST['children_ids'] ?? null
                 );
-                $success = true;
+
+
+                $status = $form_post->get_status();
+                $query = [$status => 1];
+                if ($status !== 'published'):
+                    $query['index-status'] = $status;
+                endif;
+                $query_string = '?' . http_build_query($query);
+                header('Location: ' . $this->router->get_alto_router()->generate("admin-$table-edit", ['id' => $id]) . $query_string);
             else:
                 $errors = $validator->errors();
             endif;
         endif;
-        return $this->render("admin/location/edit", array_merge(compact('title', 'form_post', 'list', 'success', 'errors'), $this->index()));
-    }
 
-    public function trash()
-    {
-        /**
-         * @var LocationRepository
-         */
-        $repository = new $this->repository;
-        $posts = $repository->find_locations([$this->params['id']]);
-        foreach ($posts as $post):
-            if ($post->get_children_ids()):
-                $repository->update_locations(
-                    $post->get_children_ids(),
-                    ['parent_id' => $post->get_parent_id()]
-                );
-            endif;
-        endforeach;
-        $repository->update_locations(
-            [$this->params['id']],
-            [
-                'status' => 'trashed',
-                'parent_id' => null
-            ],
-            null,
-            "Impossible de mettre la publication {$this->params['id']} à la corbeille."
+        return $this->render(
+            "admin/$table/edit",
+            array_merge(
+                compact('title', 'form_post', 'list', 'errors', 'status_count', 'status', 'table'),
+                ['labels' => $this->labels],
+                $this->index_part($status)
+            )
         );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?trash=1');
-    }
-    public function bulk_trash()
-    {
-        /**
-         * @var LocationRepository
-         */
-        $repository = new $this->repository;
-        $posts = $repository->find_locations($_POST['bulk']);
-        foreach ($posts as $post):
-            if ($post->get_children_ids()):
-                $repository->update_locations(
-                    $post->get_children_ids(),
-                    ['parent_id' => $post->get_parent_id()]
-                );
-            endif;
-        endforeach;
-        $ids_list = htmlentities(implode(', ', $_POST['bulk']));
-        $repository->update_locations(
-            $_POST['bulk'],
-            [
-                'status' => 'trashed',
-                'parent_id' => null
-            ],
-            null,
-            "Impossible de mettre les publications $ids_list à la corbeille."
-        );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?trash=2');
-    }
-
-    public function restore(): void
-    {
-        /**
-         * @var LocationRepository
-         */
-        $repository = new $this->repository;
-        $repository->update_locations(
-            [$this->params['id']],
-            ['status' => 'published'],
-            null,
-            "Impossible de restaurer la publication {$this->params['id']}."
-        );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?restore=1');
-    }
-    public function bulk_restore(): void
-    {
-        /**
-         * @var LocationRepository
-         */
-        $repository = new $this->repository;
-        $ids_list = htmlentities(implode(', ', $_POST['bulk']));
-        $repository->update_locations(
-            $_POST['bulk'],
-            ['status' => 'published'],
-            null,
-            "Impossible de restaurer les publications $ids_list."
-        );
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?restore=2');
-    }
-
-    public function delete(): void
-    {
-        /**
-         * @var LocationRepository
-         */
-        $repository = new $this->repository;
-        $repository->delete_locations([$this->params['id']]);
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?delete=1');
-    }
-    public function bulk_delete(): void
-    {
-        /**
-         * @var LocationRepository
-         */
-        $repository = new $this->repository;
-        $repository->delete_locations($_POST['bulk']);
-        header('Location: ' . $this->router->get_alto_router()->generate("new_$this->table") . '?delete=2');
     }
 }

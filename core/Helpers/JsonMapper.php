@@ -5,6 +5,19 @@ use App\Entity\AbstractEntity;
 
 final class JsonMapper
 {
+    public static function map(string $json, string $entity): AbstractEntity
+    {
+        $data = json_decode($json, true);
+        if ($data):
+            $class = new $entity;
+            foreach ($data as $key => $value):
+                $method = "set_$key";
+                $class->$method($value);
+            endforeach;
+        endif;
+        return $class;
+    }
+
     /**
      * @return AbstractEntity[]
      */

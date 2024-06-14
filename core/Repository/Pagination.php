@@ -49,7 +49,12 @@ class Pagination
     {
         if ($this->entities === null):
             if ($this->get_current_page() > $this->get_pages() && $this->get_pages() !== 0):
-                throw new Exception("Cette page n'existe pas. Page courrante = {$this->get_current_page()} Pages = {$this->get_pages()}");
+                if ($this->get_pages() > 1):
+                    $_GET['page'] = $this->get_pages();
+                else:
+                    unset($_GET['page']);
+                endif;
+                header('Location: ' . $_SERVER['REDIRECT_URL'] . (!empty($_GET) ? '?' . http_build_query($_GET) : ''));
             endif;
 
             $offset = $this->per_page * ($this->get_current_page() - 1);
@@ -87,20 +92,49 @@ class Pagination
 
     public function previous_link(string $link): ?string
     {
-        if ($this->get_current_page() > 2):
-            $link .= '?page=' . $this->get_current_page() - 1;
+        $datas = $_GET;
+        if (isset($datas['page'])):
+            unset($datas['page']);
         endif;
+        $status = ['published', 'draft', 'trashed', 'delete'];
+        foreach ($status as $state):
+            if (isset($datas[$state])):
+                unset($datas[$state]);
+            endif;
+        endforeach;
 
+        $link .= '?' . http_build_query(array_merge($datas, $this->get_current_page() > 2 ? ['page' => $this->get_current_page() - 1] : []));
         return $link;
     }
 
     public function number_link(string $link, int $number): ?string
     {
-        return $link . ($number !== 1 ? '?page=' . $number : '');
+        $datas = $_GET;
+        if (isset($datas['page'])):
+            unset($datas['page']);
+        endif;
+        $status = ['published', 'draft', 'trashed', 'delete'];
+        foreach ($status as $state):
+            if (isset($datas[$state])):
+                unset($datas[$state]);
+            endif;
+        endforeach;
+
+        $query_string = http_build_query(array_merge($datas, $number !== 1 ? ['page' => $number] : []));
+        return "$link?$query_string";
     }
 
     public function next_link(string $link): ?string
     {
-        return $link . '?page=' . $this->get_current_page() + 1;
+        $datas = $_GET;
+        $status = ['published', 'draft', 'trashed', 'delete'];
+        foreach ($status as $state):
+            if (isset($datas[$state])):
+                unset($datas[$state]);
+            endif;
+        endforeach;
+
+        $query_string = http_build_query(array_merge($datas, ['page' => $this->get_current_page() + 1]));
+        return "$link?$query_string";
     }
 }

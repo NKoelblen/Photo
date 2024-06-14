@@ -12,86 +12,6 @@ final class LocationRepository extends RecursiveRepository
     protected ?string $entity = LocationEntity::class;
 
     /**
-     * used for new location
-     */
-    public function create_location(array $datas, ?array $children_ids): int
-    {
-        $fields = [];
-        foreach ($datas as $key => $value) {
-            $fields[] = "$key = :$key";
-        }
-        $set = implode(', ', $fields);
-        $query = $this->pdo->prepare("INSERT INTO nk_$this->table SET $set");
-        $create = $query->execute($datas);
-        if ($create === false):
-            throw new Exception("Impossible de créer une publication dans la table $this->table.");
-        endif;
-
-        $id = $this->pdo->lastInsertId();
-
-        if ($children_ids):
-            $ids_list = htmlentities(implode(', ', $children_ids));
-            $this->update_locations($children_ids, ['parent_id' => $id], null, "Impossible de modifier le parent des publications $ids_list dans la table $this->table.");
-        endif;
-
-        return $id;
-    }
-
-    /**
-     * used for edit, trash, bulk trash, restore & bulk restore locations
-     */
-    public function update_locations(array $ids, array $datas, ?array $children_ids = null, string $message = null): void
-    {
-        $fields = [];
-        foreach ($datas as $key => $value) {
-            $fields[] = "$key = :$key";
-        }
-        $set = implode(', ', $fields);
-        $in = [];
-        $ids_params = [];
-        foreach ($ids as $id):
-            $key = ":id" . $id;
-            $in[] = $key;
-            $ids_params[$key] = $id;
-        endforeach;
-        $in = implode(', ', $in);
-        $ids_list = implode(', ', $ids);
-        $query = $this->pdo->prepare("UPDATE nk_$this->table SET $set WHERE id IN ($in)");
-        $edit = $query->execute(array_merge($datas, $ids_params));
-        if ($edit === false):
-            throw new Exception($message ?: "Impossible de modifier les publications $ids_list dans la table $this->table.");
-        endif;
-
-        if ($children_ids):
-            foreach ($ids as $id):
-                $ids_list = htmlentities(implode(', ', $children_ids));
-                $this->update_locations($children_ids, ['parent_id' => $id], null, "Impossible de modifier le parent des publications $ids_list dans la table $this->table.");
-            endforeach;
-        endif;
-    }
-
-    /**
-     * used for delete & bulk delete locations
-     */
-    public function delete_locations(array $ids): void
-    {
-        $in = [];
-        $params = [];
-        foreach ($ids as $id):
-            $key = ":id" . $id;
-            $in[] = $key;
-            $params[$key] = $id;
-        endforeach;
-        $in = implode(', ', $in);
-        $list = implode(', ', $ids);
-        $query = $this->pdo->prepare("DELETE FROM nk_$this->table WHERE id IN ($in)");
-        $delete = $query->execute($params);
-        if ($delete === false):
-            throw new Exception("Impossible de supprimer les publications $list de la table $this->table.");
-        endif;
-    }
-
-    /**
      * used for edit location
      */
     public function find_location(string $field, mixed $value): LocationEntity
@@ -101,6 +21,7 @@ final class LocationRepository extends RecursiveRepository
             "SELECT
                  $this->table.id,
                  MIN($this->table.title) AS title,
+                 MIN($this->table.status) AS status,
                  MIN($this->table.coordinates) AS coordinates,
                  MIN($this->table.parent_id) AS parent_id,
                  IF(
@@ -110,7 +31,7 @@ final class LocationRepository extends RecursiveRepository
                  ) AS children_ids
              FROM nk_$this->table $this->table
              LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
-             WHERE $this->table.status = 'published'
+             WHERE $this->table.status != 'trashed'
              AND $this->table.$field = :value
              GROUP BY $this->table.id"
         );
@@ -164,14 +85,14 @@ final class LocationRepository extends RecursiveRepository
      * 
      * @return array[Pagination, LocationEntity[]]
      */
-    public function find_paginated_locations(string $order = 'path ASC', int $per_page = 20): array
+    public function find_paginated_locations(string $status = 'published', string $order = 'path ASC', int $per_page = 20): array
     {
         $order = htmlentities($order);
         $pagination = new Pagination(
             "WITH RECURSIVE ascendants AS (
                  SELECT id, title, slug, private, title AS path, 0 AS level
                  FROM nk_$this->table
-                 WHERE status = 'published'
+                 WHERE status = :status
                  AND parent_id IS NULL
                  UNION ALL
                  SELECT
@@ -183,13 +104,13 @@ final class LocationRepository extends RecursiveRepository
                      ascendants.level + 1
                  FROM nk_$this->table $this->table
                  JOIN ascendants ON $this->table.parent_id = ascendants.id
-                 WHERE $this->table.status = 'published'
+                 WHERE $this->table.status != 'trashed'
              )
              SELECT * FROM ascendants",
             "SELECT COUNT(id)
              FROM nk_$this->table
-             WHERE status = 'published'",
-            [],
+             WHERE status = :status",
+            compact('status'),
             $order,
             $per_page
         );
@@ -222,8 +143,6 @@ final class LocationRepository extends RecursiveRepository
 
     /**
      * used for new & edit location
-     * 
-     * @return LocationEntity
      */
     public function list_locations(): array
     {
@@ -244,7 +163,7 @@ final class LocationRepository extends RecursiveRepository
                  JOIN ascendants ON $this->table.parent_id = ascendants.id
                  WHERE $this->table.status = 'published'
              )
-             SELECT * FROM ascendants ORDER BY path"
+             SELECT id, title, parent_id, level FROM ascendants ORDER BY path"
         );
         $query->execute();
         $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
@@ -315,7 +234,8 @@ final class LocationRepository extends RecursiveRepository
                          JSON_OBJECT(
                              'title', children.title,
                              'slug', children.slug,
-                             'children', IFNULL(children.children, 'null')
+                             'children', IFNULL(children.children, 'null'),
+                             'thumbnail', children.thumbnail
                          )
                      )
                  ) AS children,
@@ -343,19 +263,28 @@ final class LocationRepository extends RecursiveRepository
                         )
                     )
                  FROM parent
-                 GROUP BY $this->table.id) AS ascendants
+                 GROUP BY $this->table.id) AS ascendants,
+                 (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
+                  FROM nk_photo_$this->table photo_$this->table
+                  JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
+                  WHERE photo_$this->table.{$this->table}_id = $this->table.id
+                  AND photo.status = 'published'
+                  AND photo.private IS NULL
+                  ORDER BY RAND()
+                  LIMIT 1) AS thumbnail
              FROM nk_$this->table $this->table
              LEFT JOIN (
                  SELECT DISTINCT
                  children.title,
-                 MIN(children.slug) AS slug,
-                 MIN(children.parent_id) AS parent_id,
-                 MIN(children.status) AS status,
+                 children.slug,
+                 children.parent_id,
+                 children.status,
+                 MIN(photo.thumbnail) AS thumbnail,
                  JSON_PRETTY(
                      CONCAT(
                          '[',
                          GROUP_CONCAT(
-                            CONCAT('{\"title\": \"', grandchildren.title, '\", \"slug\": \"', grandchildren.slug, '\"}')
+                            DISTINCT CONCAT('{\"title\": \"', grandchildren.title, '\", \"slug\": \"', grandchildren.slug, '\"}')
                             ORDER BY grandchildren.title
                             SEPARATOR ', '
                          ),
@@ -363,12 +292,21 @@ final class LocationRepository extends RecursiveRepository
                      )
                  ) AS children
                  FROM nk_$this->table children
+                 LEFT JOIN 
+                 (
+                     SELECT photo_$this->table.{$this->table}_id, FIRST_VALUE(JSON_OBJECT('path', photo.path, 'description', photo.description)) OVER (PARTITION BY photo_$this->table.{$this->table}_id ORDER BY RAND()) AS thumbnail
+                     FROM nk_photo_$this->table photo_$this->table
+                     JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
+                     WHERE photo.status = 'published'
+                     AND photo.private IS NULL
+                 ) photo ON photo.{$this->table}_id = children.id
                  LEFT JOIN nk_$this->table grandchildren ON children.id = grandchildren.parent_id
                  WHERE children.status = 'published'
                  AND (grandchildren.status = 'published' OR grandchildren.status IS NULL)
                  AND children.private IS NULL
                  AND grandchildren.private IS NULL
-                 GROUP BY children.title
+                 GROUP BY children.id
+                 ORDER BY children.title
              ) children ON $this->table.id = children.parent_id
              WHERE $this->table.status = 'published'
              AND (children.status = 'published' OR children.status IS NULL)
@@ -406,7 +344,15 @@ final class LocationRepository extends RecursiveRepository
                          ),
                          ']'
                      )
-                 ) AS children
+                 ) AS children,
+                 (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
+                  FROM nk_photo_$this->table photo_$this->table
+                  JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
+                  WHERE photo_$this->table.{$this->table}_id = $this->table.id
+                  AND photo.status = 'published'
+                  AND photo.private IS NULL
+                  ORDER BY RAND()
+                  LIMIT 1) AS thumbnail
              FROM nk_$this->table $this->table
              LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
              WHERE $this->table.status = 'published'
@@ -414,7 +360,7 @@ final class LocationRepository extends RecursiveRepository
              AND $this->table.private IS NULL
              AND children.private IS NULL
              AND $this->table.parent_id IS NULL
-             GROUP BY $this->table.title
+             GROUP BY $this->table.id
              ORDER BY $this->table.title"
         );
         $query->execute();
@@ -431,7 +377,15 @@ final class LocationRepository extends RecursiveRepository
             "SELECT DISTINCT
                  $this->table.title,
                  $this->table.slug,
-                 $this->table.coordinates
+                 $this->table.coordinates,
+                 (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
+                  FROM nk_photo_$this->table photo_$this->table
+                  JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
+                  WHERE photo_$this->table.{$this->table}_id = $this->table.id
+                  AND photo.status = 'published'
+                  AND photo.private IS NULL
+                  ORDER BY RAND()
+                  LIMIT 1) AS thumbnail
              FROM nk_$this->table $this->table
              LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
              WHERE children.id IS NULL
@@ -466,8 +420,13 @@ final class LocationRepository extends RecursiveRepository
                  WHERE descendants.status = 'published'
                  AND descendants.private IS NULL
              )
-             SELECT DISTINCT title, slug, coordinates
+             SELECT DISTINCT children.title, children.slug, children.coordinates, FIRST_VALUE(photo.thumbnail) OVER (PARTITION BY children.id ORDER BY RAND()) AS thumbnail
              FROM children
+             JOIN (SELECT photo_$this->table.{$this->table}_id, JSON_OBJECT('path', photo.path, 'description', photo.description) AS thumbnail
+                   FROM nk_photo_$this->table photo_$this->table
+                   JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
+                   WHERE photo.status = 'published'
+                   AND photo.private IS NULL) photo ON photo.{$this->table}_id = children.id
              WHERE children IS NULL"
         );
         $query->execute(compact('id'));
@@ -498,7 +457,15 @@ final class LocationRepository extends RecursiveRepository
                  WHERE descendants.status = 'published'
                  AND descendants.private IS NULL
              )
-             SELECT DISTINCT title, slug, coordinates
+             SELECT DISTINCT title, slug, coordinates,
+                 (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
+                  FROM nk_photo_$this->table photo_$this->table
+                  JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
+                  WHERE photo_$this->table.{$this->table}_id = siblings.id
+                  AND photo.status = 'published'
+                  AND photo.private IS NULL
+                  ORDER BY RAND()
+                  LIMIT 1) AS thumbnail
              FROM siblings
              WHERE children IS NULL"
         );
