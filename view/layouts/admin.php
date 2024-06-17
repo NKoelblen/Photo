@@ -12,11 +12,13 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
     <script src="/assets/js/admin/checkbox.js" defer></script>
-    <script src="/assets/js/querystring.js" defer></script>
-    <?php if (
+    <?php if (str_contains($_SERVER['REQUEST_URI'], 'admin/photo')): ?>
+        <script src="/assets/js/querystring.js" defer></script>
+    <?php endif;
+    if (
         (
             str_contains($_SERVER['REQUEST_URI'], 'admin/location')
-            || str_contains($_SERVER['REQUEST_URI'], 'admin/categorie')
+            || str_contains($_SERVER['REQUEST_URI'], 'admin/category')
         )
         && (
             !isset($_GET['status'])
@@ -24,6 +26,15 @@
         )
     ): ?>
         <script src="/assets/js/admin/parent_children_selectors.js" defer></script>
+    <?php endif;
+    if (
+        str_contains($_SERVER['REQUEST_URI'], 'admin/category')
+        && (
+            !isset($_GET['status'])
+            || $_GET['status'] !== 'trashed'
+        )
+    ): ?>
+        <script src="/assets/js/admin/category_status.js" defer></script>
     <?php endif;
     if (
         str_contains($_SERVER['REQUEST_URI'], 'admin/location')

@@ -65,7 +65,7 @@ final class AlbumRepository extends PostRepository
             "SELECT id, title, slug
              FROM nk_$this->table
              WHERE status = 'published'
-             AND private IS NULL
+             AND private = 0
              AND $field = :value"
         );
         $query->execute(compact('value'));
@@ -101,10 +101,10 @@ final class AlbumRepository extends PostRepository
                      ) OVER (PARTITION BY photo.{$this->table}_id ORDER BY RAND()) AS thumbnail
                  FROM nk_photo photo
                  WHERE photo.status = 'published'
-                 AND photo.private IS NULL
+                 AND photo.private_ids IS NULL
              ) photo ON $this->table.id = photo.{$this->table}_id
              WHERE $this->table.status = 'published'
-             AND $this->table.private IS NULL
+             AND $this->table.private = 0
              ORDER BY $order
              $limit"
         );
@@ -138,14 +138,14 @@ final class AlbumRepository extends PostRepository
                      ) OVER (PARTITION BY photo.{$this->table}_id ORDER BY RAND()) AS thumbnail
                  FROM nk_photo photo
                  WHERE photo.status = 'published'
-                 AND photo.private IS NULL
+                 AND photo.private_ids IS NULL
              ) photo ON $this->table.id = photo.{$this->table}_id
              WHERE $this->table.status = 'published'
-             AND $this->table.private IS NULL",
+             AND $this->table.private = 0",
             "SELECT COUNT(id)
              FROM nk_$this->table
              WHERE status = 'published'
-             AND private IS NULL",
+             AND private = 0",
             [],
             $order,
             $per_page
@@ -172,5 +172,79 @@ final class AlbumRepository extends PostRepository
             $list[$entity->get_id()] = $entity->get_title();
         endforeach;
         return $list;
+    }
+
+    /**
+     * use to update private_ids & private
+     */
+    public function find_categories_album_ids(array $photo_ids, array $categories_ids, int $contains): array
+    {
+        if (empty($photo_ids) || empty($categories_ids)):
+            return [];
+        endif;
+        $params = compact('contains');
+
+        $i = 0;
+        $in = [];
+        foreach ($photo_ids as $photo_id):
+            $key = "photo_id$i";
+            $in[] = ":$key";
+            $params[$key] = $photo_id;
+            $i++;
+        endforeach;
+        $in = implode(', ', $in);
+
+        foreach ($categories_ids as $category_id):
+            $categories_list[] = (string) $category_id;
+        endforeach;
+        $categories_list = json_encode($categories_list);
+
+        $query = $this->pdo->prepare(
+            "SELECT DISTINCT album.id
+             FROM nk_photo photo
+             JOIN nk_album album ON photo.album_id = album.id
+             WHERE photo.id IN ($in)
+             AND JSON_CONTAINS(JSON_PRETTY(COALESCE(album.private_ids, '[]')), '$categories_list') = :contains
+             GROUP BY album.id
+             HAVING SUM(JSON_CONTAINS(JSON_PRETTY(COALESCE(photo.private_ids, '[]')), '$categories_list')) < 2"
+        );
+        $query->execute($params);
+        return $query->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * use to update private
+     */
+    public function find_categories_album_visibility(array $photo_ids): array
+    {
+        if (empty($photo_ids)):
+            return [];
+        endif;
+
+        $params = [];
+
+        $i = 0;
+        $in = [];
+        foreach ($photo_ids as $photo_id):
+            $key = ":id" . $i;
+            $in[] = $key;
+            $params[$key] = $photo_id;
+            $i++;
+        endforeach;
+        $in = implode(', ', $in);
+
+        $query = $this->pdo->prepare(
+            "SELECT DISTINCT album.id, album.private, photo_nb.photos, photo_nb.private_photos
+             FROM nk_photo photo
+             JOIN nk_album album ON photo.album_id = album.id
+             JOIN (
+                 SELECT album_id, COUNT(id) AS photos, COUNT(CASE WHEN private_ids IS NOT NULL THEN id END) AS private_photos
+                 FROM nk_photo
+                 GROUP BY album_id
+             ) photo_nb ON album.id = photo_nb.album_id
+             WHERE photo.id IN ($in)"
+        );
+        $query->execute($params);
+        return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 }

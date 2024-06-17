@@ -151,6 +151,8 @@ final class AlbumController extends PostController
         $form_post = $repository->find_album('id', $id);
         $errors = [];
         if (!empty($_POST)):
+            $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
+
             $fields_to_hydrate = ['id'];
             foreach ($_POST as $key => $value):
                 $get_value = "get_$key";

@@ -17,7 +17,7 @@ class YearRepository extends PostRepository
                  FIRST_VALUE(JSON_OBJECT('path', path, 'description', description)) OVER (PARTITION BY YEAR(created_at) ORDER BY RAND()) AS thumbnail
              FROM nk_photo
              WHERE status = 'published'
-             AND private IS NULL
+             AND private_ids IS NULL
              ORDER BY YEAR(created_at) DESC
              LIMIT 8"
         )->fetchAll(PDO::FETCH_CLASS, $this->entity);

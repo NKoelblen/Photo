@@ -4,7 +4,7 @@ namespace App\Validator;
 
 use App\Repository\PostRepository;
 
-abstract class PostValidator extends AppValidator
+abstract class PostValidator extends AbstractValidator
 {
     public function __construct(array $data, PostRepository $table, ?int $id = null)
     {

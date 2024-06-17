@@ -8,7 +8,7 @@ final class Photo extends AbstractMigration
                                           `title` varchar(255) NOT NULL,
                                           `slug` varchar(255) NOT NULL UNIQUE,
                                           `status` varchar(255) NOT NULL DEFAULT 'published' UNIQUE,
-                                          `private` json,
+                                          `private_ids` json,
                                           `path` varchar(255) NOT NULL,
                                           `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
                                           `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

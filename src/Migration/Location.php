@@ -8,7 +8,7 @@ final class Location extends AbstractMigration
                                           `title` varchar(255) NOT NULL,
                                           `slug` varchar(255) NOT NULL UNIQUE,
                                           `status` varchar(255) NOT NULL DEFAULT 'published',
-                                          `private` json,
+                                          `private_ids` json,
                                           `coordinates` varchar(255) NOT NULL,
                                           `parent_id` int DEFAULT NULL,
                                           PRIMARY KEY (`id`),

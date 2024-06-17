@@ -2,7 +2,6 @@
 
 namespace App\Validator;
 
-use App\Repository\PostRepository;
 use App\Repository\RecursiveRepository;
 
 abstract class RecursiveValidator extends PostValidator

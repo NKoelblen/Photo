@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Repository\AlbumRepository;
+use App\Repository\CategoryRepository;
 use App\Repository\LocationRepository;
 use App\Repository\YearRepository;
 
@@ -20,6 +21,10 @@ class PageController extends AppController
         $location_controller = 'location';
         $markers = $location_repository->find_allowed_orphans_locations();
 
+        $category_repository = new CategoryRepository();
+        $categories = $category_repository->find_allowed_roots_categories();
+        $category_controller = 'category';
+
         $years = (new YearRepository())->find_years();
         $years_controller = 'photo';
 
@@ -31,6 +36,8 @@ class PageController extends AppController
                 'album_controller',
                 'locations',
                 'location_controller',
+                'categories',
+                'category_controller',
                 'years',
                 'years_controller',
                 'markers'

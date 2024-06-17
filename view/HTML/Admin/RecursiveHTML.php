@@ -10,7 +10,7 @@ class RecursiveHTML extends CollectionHTML
     {
         ob_start(); ?>
 
-        <div class="row g-3">
+        <div id="parent-children" class="row w-100 g-3">
 
             <div class="col">
                 <?= $form->parent_radio('parent_id', 'Parent', $options); ?>
@@ -39,7 +39,8 @@ class RecursiveHTML extends CollectionHTML
                 <?= $post->get_title(); ?>
             </a>
         </td>
-        <td class="text-center px-3"><?= $post->get_private() ? 'Privée' : ''; ?></td>
+        <td class="text-center px-3">
+            <?= $post->get_private() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?></td>
 
         <?php return ob_get_clean();
     }

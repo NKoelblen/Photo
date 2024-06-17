@@ -7,6 +7,7 @@ use App\Helpers\JsonMapper;
 abstract class RecursiveEntity extends CollectionEntity
 {
     protected ?int $parent_id = null;
+    protected ?string $parent = null;
     protected ?string $children_ids = null;
     protected ?string $children = null;
     protected int $children_nb = 0;
@@ -27,6 +28,27 @@ abstract class RecursiveEntity extends CollectionEntity
     public function set_parent_id(int $parent_id): static
     {
         $this->parent_id = $parent_id;
+        return $this;
+    }
+
+    /**
+     * @return RecursiveEntity
+     */
+    public function get_parent(): ?object
+    {
+        if ($this->parent === null):
+            return $this->parent;
+        endif;
+        return JsonMapper::map($this->parent, $this::class);
+    }
+
+    public function set_parent(?string $parent): static
+    {
+        if (is_array($parent)):
+            $this->parent = json_encode($parent);
+        else:
+            $this->parent = $parent;
+        endif;
         return $this;
     }
 
@@ -59,7 +81,7 @@ abstract class RecursiveEntity extends CollectionEntity
         return JsonMapper::map_array($this->children, $this::class);
     }
 
-    public function set_children(?string $children): static
+    public function set_children(string|array|null $children): static
     {
         if (is_array($children)):
             $this->children = json_encode($children);

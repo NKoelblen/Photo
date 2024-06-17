@@ -28,6 +28,9 @@ final class JsonMapper
         if ($datas):
             foreach ($datas as $data):
                 $class = new $entity;
+                if (is_string($data)):
+                    $data = json_decode($data, true);
+                endif;
                 foreach ($data as $key => $value):
                     $method = "set_$key";
                     $class->$method($value);

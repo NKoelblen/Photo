@@ -69,7 +69,8 @@ class PostHTML extends AdminHTML
                 <?= $post->get_title(); ?>
             </a>
         </td>
-        <td class="text-center px-3"><?= $post->get_private() ? 'Privée' : ''; ?></td>
+        <td class="text-center px-3">
+            <?= $post->get_private() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?></td>
 
         <?php return ob_get_clean();
     }

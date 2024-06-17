@@ -167,6 +167,10 @@ final class LocationController extends RecursiveController
         $list = $repository->list_locations();
         $errors = [];
         if (!empty($_POST)):
+            $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
+
+            $old_children_ids = $form_post->get_children_ids();
+
             $fields_to_hydrate = ['id'];
             foreach ($_POST as $key => $value):
                 $get_value = "get_$key";
@@ -188,11 +192,27 @@ final class LocationController extends RecursiveController
                     endif;
                 endforeach;
                 $repository->update_recursives(
-                    [$id],
+                    $ids,
                     $datas_to_set,
                     $_POST['children_ids'] ?? null
                 );
 
+                /**
+                 * Remove children
+                 */
+                $children_to_remove = [];
+                foreach ($old_children_ids as $old_child_id):
+                    if (!in_array($old_child_id, $form_post->get_children_ids())):
+                        $children_to_remove[] = $old_child_id;
+                    endif;
+                endforeach;
+                if (!empty($children_to_remove)):
+                    $repository->update_recursives(
+                        $children_to_remove,
+                        ['parent_id' => null],
+                        null
+                    );
+                endif;
 
                 $status = $form_post->get_status();
                 $query = [$status => 1];

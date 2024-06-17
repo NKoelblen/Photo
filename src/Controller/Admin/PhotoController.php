@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 use App\Attachment\PhotoAttachment;
 use App\Entity\PhotoEntity;
 use App\Helpers\ArrayHelper;
+use App\Helpers\Text;
 use App\Repository\AlbumRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\LocationRepository;
@@ -55,16 +56,35 @@ final class PhotoController extends PostController
         [$pagination, $posts] = $repository->find_paginated_photos($datas, $status);
         $link = $this->router->get_alto_router()->generate("admin-$this->table");
 
-        $filter_album = (new AlbumRepository())->list_albums();
-        $filter_categories = (new CategoryRepository())->list_for_edit_photo();
-        $filter_locations = (new LocationRepository())->list_for_edit_photo();
+        $albums_list = (new AlbumRepository())->list_albums();
+
+        $category_repository = new CategoryRepository();
+        $categories_filter = $category_repository->list_categories();
+        $categories_list = $category_repository->list_for_edit_photo();
+
+        $location_repository = new LocationRepository();
+        $locations_filter = $location_repository->list_locations();
+        $locations_list = $location_repository->list_for_edit_photo();
 
         $table = $this->table;
 
         return $this->render(
             "admin/$table/index",
             array_merge(
-                compact('title', 'posts', 'pagination', 'link', 'filter_album', 'filter_categories', 'filter_locations', 'status_count', 'status', 'table'),
+                compact(
+                    'title',
+                    'posts',
+                    'pagination',
+                    'link',
+                    'albums_list',
+                    'categories_filter',
+                    'categories_list',
+                    'locations_filter',
+                    'locations_list',
+                    'status_count',
+                    'status',
+                    'table'
+                ),
                 ['labels' => $this->labels]
             )
         );
@@ -165,18 +185,19 @@ final class PhotoController extends PostController
         $errors = [];
         if (!empty($_POST) || !empty($_FILES)):
 
-            $old_categories = $form_post->get_categories_ids();
+            $old_categories = $form_post->get_categories();
             $old_locations = $form_post->get_locations_ids();
 
             /**
-             * hydrate PhotoEntity
+             * Hydrate post
              */
+            $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
 
             $fields_to_hydrate = ['id'];
             if (!empty($_POST)):
                 foreach ($_POST as $key => $value):
                     $get_value = "get_$key";
-                    if ($form_post->$get_value() != $value):
+                    if ($form_post->$get_value() !== $value):
                         $fields_to_hydrate[] = $key;
                     endif;
                 endforeach;
@@ -189,7 +210,7 @@ final class PhotoController extends PostController
             $repository->hydrate($form_post, $datas, $fields_to_hydrate);
 
             /**
-             * upload files && hydrate PhotoEntity with path & created_at
+             * Upload files && Hydrate post with path & created_at
              */
 
             if (isset($_FILES['image'])):
@@ -202,13 +223,13 @@ final class PhotoController extends PostController
             if ($validator->validate()):
 
                 /**
-                 * update photo
+                 * Update post
                  */
 
                 $datas_to_set = [];
                 if (!empty($_POST)):
                     foreach ($_POST as $key => $value):
-                        if ($key !== 'locations_ids' && $key !== 'categories_ids'):
+                        if ($key !== 'locations_ids' && $key !== 'categories'):
                             $get_value = "get_$key";
                             if ($key === 'created_at'):
                                 $datas_to_set['created_at'] = $form_post->get_created_at()->format('Y-m-d H:i:s');
@@ -224,45 +245,107 @@ final class PhotoController extends PostController
                 endif;
                 if (!empty($ids) && !empty($datas_to_set)):
                     $repository->update_posts(
-                        [$id],
+                        $ids,
                         $datas_to_set
                     );
                 endif;
 
                 /**
-                 * update locations/categories
+                 * Update locations
                  */
+                if (in_array('locations_ids', $fields_to_hydrate)):
+                    $repository->insert_items(
+                        $ids,
+                        'location',
+                        $form_post->get_locations_ids()
+                    );
 
-                $collections = [];
-                if (isset($fields_to_hydrate['locations_ids'])):
-                    foreach ($form_post->get_locations_ids() as $location_id):
-                        if (!in_array($location_id, $old_locations)):
-                            $collections['location'][] = $location_id;
+                    /**
+                     * Detach locations
+                     */
+                    $locations_ids_to_remove = [];
+                    foreach ($old_locations as $old_location):
+                        if (!in_array($old_location, $form_post->get_locations_ids())):
+                            $locations_ids_to_remove[] = $old_location;
                         endif;
                     endforeach;
-                endif;
-                if (isset($fields_to_hydrate['categories_ids'])):
-                    foreach ($form_post->get_categories_ids() as $category_id):
-                        if (!in_array($category_id, $old_categories)):
-                            $collections['category'][] = $category_id;
-                        endif;
-                    endforeach;
-                endif;
-                if (!empty($collections)):
-                    foreach ($collections as $table => $collections_ids):
-                        $repository->insert_items(
-                            [$id],
-                            $table,
-                            $collections_ids
-                        );
-                        $repository->remove_items(
-                            [$id],
-                            $table,
-                            $collections_ids
-                        );
-                    endforeach;
+                    $remove = $repository->remove_items(
+                        $ids,
+                        'location',
+                        $locations_ids_to_remove
+                    );
                 endif;
 
+                /**
+                 * Update categories
+                 */
+                if (in_array('categories', $fields_to_hydrate)):
+                    $categories_ids = ['public' => [], 'private' => []];
+                    foreach ($form_post->get_categories() as $category):
+                        switch ($category->get_private()) {
+                            case 0:
+                                $categories_ids['public'][] = $category->get_id();
+                                break;
+                            case 1:
+                                $categories_ids['private'][] = $category->get_id();
+                        }
+                    endforeach;
+
+                    /**
+                     * Attach categories
+                     */
+                    $insert = 0;
+                    $repository->insert_items(
+                        $ids,
+                        'category',
+                        $categories_ids['public']
+                    );
+                    $insert = $repository->insert_items(
+                        $ids,
+                        'category',
+                        $categories_ids['private']
+                    );
+
+                    /**
+                     * Detach categories
+                     */
+                    $categories_ids_to_remove = [];
+                    foreach ($old_categories as $old_category):
+                        if (!in_array($old_category->get_id(), array_merge($categories_ids['public'], $categories_ids['private']))):
+                            $categories_ids_to_remove[] = $old_category->get_id();
+                        endif;
+                    endforeach;
+                    $remove = $repository->remove_items(
+                        $ids,
+                        'category',
+                        $categories_ids_to_remove
+                    );
+
+                    /**
+                     * Update photos, albums & locations visibility
+                     */
+                    if ($insert > 0 || $remove > 0):
+
+                        if ($insert > 0):
+                            $repository->insert_private_ids($ids, $categories_ids['private']);
+                            $this->add_private_ids('album', $ids, $categories_ids['private']);
+                            $this->add_private_ids('location', $ids, $categories_ids['private']);
+                        endif;
+
+                        if ($remove > 0):
+                            $repository->remove_private_ids($ids, $categories_ids_to_remove);
+                            $this->remove_private_ids('album', $ids, $categories_ids_to_remove);
+                            $this->remove_private_ids('location', $ids, $categories_ids_to_remove);
+                        endif;
+
+                        $this->upddate_private('album', $ids);
+                        $this->upddate_private('location', $ids);
+                    endif;
+                endif;
+
+                /**
+                 * Redirect
+                 */
                 $status = $form_post->get_status();
                 $query = [$status => 1];
                 if ($status !== 'published'):
@@ -290,14 +373,14 @@ final class PhotoController extends PostController
         unset($_POST['bulk']);
 
         /**
-         * update photo
+         * Update photo
          */
 
         $datas_to_set = [];
         if (!empty($_POST)):
             foreach ($_POST as $key => $value):
                 if ($value):
-                    if ($key !== 'locations_ids' && $key !== 'categories_ids'):
+                    if ($key !== 'locations_ids' && $key !== 'categories'):
                         $datas_to_set[$key] = $value;
                     endif;
                 endif;
@@ -312,29 +395,67 @@ final class PhotoController extends PostController
         endif;
 
         /**
-         * update locations/categories
+         * Hydrate
          */
+        $post = new PhotoEntity();
+        $repository->hydrate($post, $_POST, array_keys($_POST));
 
-        $collections = [];
+        /**
+         * Insert locations
+         */
         if (isset($_POST['locations_ids'])):
-            $collections['location'] = explode(',', $_POST['locations_ids']);
-        endif;
-        if (isset($_POST['categories_ids'])):
-            $collections['category'] = explode(',', $_POST['categories_ids']);
-        endif;
-        if (!empty($collections)):
-            foreach ($collections as $table => $collections_ids):
-                if ($table = 'location'):
-                    $repository->remove_items($ids, $table, $collections_ids);
-                endif;
-                $repository->insert_items(
-                    $ids,
-                    $table,
-                    $collections_ids
-                );
-            endforeach;
+            $repository->insert_items(
+                $ids,
+                'location',
+                $post->get_locations_ids()
+            );
         endif;
 
+        /**
+         * Insert categories
+         */
+        if (isset($_POST['categories'])):
+            $categories_ids = [];
+            foreach ($post->get_categories() as $category):
+                switch ($category->get_private()) {
+                    case 0:
+                        $categories_ids['public'][] = $category->get_id();
+                        break;
+                    case 1:
+                        $categories_ids['private'][] = $category->get_id();
+                }
+            endforeach;
+
+            /**
+             * Attach categories
+             */
+            $repository->insert_items(
+                $ids,
+                'category',
+                $categories_ids['public']
+            );
+            $insert = $repository->insert_items(
+                $ids,
+                'category',
+                $categories_ids['private']
+            );
+
+            /**
+             * Update photos, albums & locations visibility
+             */
+            if ($insert > 0):
+                $repository->insert_private_ids($ids, $categories_ids['private']);
+                $this->add_private_ids('album', $ids, $categories_ids['private']);
+                $this->add_private_ids('location', $ids, $categories_ids['private']);
+            endif;
+
+            $this->upddate_private('album', $ids);
+            $this->upddate_private('location', $ids);
+        endif;
+
+        /**
+         * Redirect
+         */
         $_GET['edit'] = 2;
         $query_string = '?' . http_build_query($_GET);
         header('Location: ' . $this->router->get_alto_router()->generate("admin-$this->table") . $query_string);

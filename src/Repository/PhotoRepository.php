@@ -41,7 +41,7 @@ final class PhotoRepository extends PostRepository
         return $this->pdo->lastInsertId();
     }
 
-    public function insert_items(array $this_ids, string $table, array $collection_ids): void
+    public function insert_items(array $this_ids, string $table, array $collection_ids): int
     {
         if ($collection_ids):
             $this_list = implode($this_ids);
@@ -64,20 +64,26 @@ final class PhotoRepository extends PostRepository
             $query = $this->pdo->prepare(
                 "INSERT INTO nk_{$this->table}_$table ({$this->table}_id, {$table}_id)
                          VALUES $values
-                         ON DUPLICATE KEY UPDATE {$this->table}_id = {$this->table}_id"
+                         ON DUPLICATE KEY UPDATE {$this->table}_id = {$this->table}_id, {$table}_id = {$table}_id"
             );
             $create = $query->execute($params);
             if ($create === false):
                 throw new Exception("Impossible d'attacher les publications $collection_list dans la table $table aux publications $this_list dans la table $this->table.");
             endif;
+            return $query->rowCount();
         endif;
+        return 0;
     }
 
     /**
      * @param ?array $except_ids remove all items except specified items ids
      */
-    public function remove_items(array $this_ids, string $table, ?array $except_ids = null): void
+    public function remove_items(array $this_ids, string $table, array $remove_ids): int
     {
+        if (empty($this_ids) || empty($remove_ids)):
+            return 0;
+        endif;
+
         $this_list = implode($this_ids);
 
         $params = [];
@@ -90,24 +96,20 @@ final class PhotoRepository extends PostRepository
         endforeach;
         $this_in = implode(', ', $this_in);
 
-        $except = '';
-        if ($except_ids):
-            $except_in = [];
-            foreach ($except_ids as $except_id):
-                $key = ":id" . $except_id;
-                $except_in[] = $key;
-                $params[$key] = $except_id;
-            endforeach;
-            $except_in = implode(', ', $except_in);
-            $except = "AND {$table}_id NOT IN ($except_in)";
-        endif;
+        $remove_in = [];
+        foreach ($remove_ids as $remove_id):
+            $key = ":id" . $remove_id;
+            $remove_in[] = $key;
+            $params[$key] = $remove_id;
+        endforeach;
+        $remove_in = implode(', ', $remove_in);
 
-        $query = $this->pdo->prepare("DELETE FROM nk_{$this->table}_$table WHERE {$this->table}_id IN ($this_in) $except");
+        $query = $this->pdo->prepare("DELETE FROM nk_{$this->table}_$table WHERE {$this->table}_id IN ($this_in) AND {$table}_id IN ($remove_in)");
         $delete = $query->execute($params);
         if ($delete === false):
             throw new Exception("Impossible de détacher les publications dans la table $table des publications $this_list dans la table $this->table.");
         endif;
-
+        return $query->rowCount();
     }
 
     /**
@@ -126,7 +128,7 @@ final class PhotoRepository extends PostRepository
                  MIN($this->table.status) AS status, 
                  MIN($this->table.album_id) AS album_id, 
                  JSON_ARRAYAGG({$this->table}_location.location_id) AS locations_ids,
-                 JSON_ARRAYAGG({$this->table}_category.category_id) AS categories_ids
+                 JSON_ARRAYAGG(JSON_OBJECT('id', {$this->table}_category.category_id)) AS categories
              FROM nk_$this->table $this->table
              LEFT JOIN nk_album album ON $this->table.album_id = album.id
              LEFT JOIN nk_{$this->table}_location {$this->table}_location ON $this->table.id = {$this->table}_location.{$this->table}_id
@@ -196,7 +198,7 @@ final class PhotoRepository extends PostRepository
                  $this->table.title,
                  $this->table.description,
                  $this->table.created_at,
-                 $this->table.private,
+                 $this->table.private_ids,
                  album.detail AS album,
                  location.details AS locations,
                  category.details AS categories
@@ -322,13 +324,13 @@ final class PhotoRepository extends PostRepository
                  FROM nk_{$this->table}_location {$this->table}_location
                  LEFT JOIN nk_location location ON {$this->table}_location.location_id = location.id
                  WHERE location.status = 'published'
-                 AND location.private IS NULL
+                 AND location.private = 0
                  GROUP BY {$this->table}_id
              ) location ON location.{$this->table}_id = $this->table.id
              WHERE $this->table.status = 'published'
-             AND $this->table.private IS NULL
+             AND $this->table.private_ids IS NULL
              AND (album.status = 'published' OR album.status IS NULL)
-             AND album.private IS NULL
+             AND album.private = 0
              $search",
             "SELECT COUNT($this->table.id)
              FROM nk_$this->table $this->table
@@ -349,11 +351,11 @@ final class PhotoRepository extends PostRepository
                  FROM nk_{$this->table}_location {$this->table}_location
                  LEFT JOIN nk_location location ON {$this->table}_location.location_id = location.id
                  WHERE location.status = 'published'
-                 AND location.private IS NULL
+                 AND location.private_ids IS NULL
                  GROUP BY {$this->table}_id
              ) location ON location.{$this->table}_id = $this->table.id
              WHERE $this->table.status = 'published'
-             AND $this->table.private IS NULL
+             AND $this->table.private_ids IS NULL
              $search",
             $filters,
             $order,
@@ -361,5 +363,29 @@ final class PhotoRepository extends PostRepository
         );
         $entities = $pagination->get_entities($this->entity, $this->table);
         return [$pagination, $entities];
+    }
+
+    /**
+     * use to update private_ids
+     * 
+     * @return [$photos_ids, $albums_ids, $locations_ids]
+     */
+    public function find_categories_photos(array $category_ids): array
+    {
+        $in = [];
+        $params = [];
+        foreach ($category_ids as $id):
+            $key = ":id" . $id;
+            $in[] = $key;
+            $params[$key] = $id;
+        endforeach;
+        $in = implode(', ', $in);
+        $query = $this->pdo->prepare(
+            "SELECT photo_id
+             FROM nk_photo_category
+             WHERE category_id IN ($in)"
+        );
+        $query->execute($params);
+        return $query->fetchAll(PDO::FETCH_COLUMN);
     }
 }

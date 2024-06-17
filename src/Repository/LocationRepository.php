@@ -187,7 +187,7 @@ final class LocationRepository extends RecursiveRepository
                  SELECT id, title, parent_id, title AS path, 0 AS level
                  FROM nk_$this->table
                  WHERE status = 'published'
-                 AND private IS NULL
+                 AND private = 0
                  AND parent_id IS NULL
                  UNION ALL
                  SELECT
@@ -199,7 +199,7 @@ final class LocationRepository extends RecursiveRepository
                  FROM nk_$this->table $this->table
                  JOIN ascendants ON $this->table.parent_id = ascendants.id
                  WHERE $this->table.status = 'published'
-                 AND $this->table.private IS NULL
+                 AND $this->table.private = 0
              )
              SELECT * FROM ascendants ORDER BY path"
         );
@@ -211,6 +211,46 @@ final class LocationRepository extends RecursiveRepository
                 'label' => str_repeat('–', $entity->get_level()) . ' ' . $entity->get_title(),
                 'parent_id' => $entity->get_parent_id()
             ];
+        endforeach;
+        return $list;
+    }
+
+    /**
+     * used for public filters
+     */
+    public function list_allowed(): array
+    {
+        $query = $this->pdo->prepare(
+            "WITH RECURSIVE ascendants AS (
+                 SELECT id, title, title AS path, 0 AS level
+                 FROM nk_$this->table
+                 WHERE status = 'published'
+                 AND private = 0
+                 AND parent_id IS NULL
+                 UNION ALL
+                 SELECT
+                     $this->table.id,
+                     $this->table.title,
+                     CONCAT(ascendants.path, ' > ', $this->table.title),
+                     ascendants.level + 1
+                 FROM nk_$this->table $this->table
+                 JOIN ascendants ON $this->table.parent_id = ascendants.id
+                 WHERE $this->table.status = 'published'
+                 AND $this->table.private = 0
+             )
+             SELECT ascendants.id, ascendants.title, ascendants.level
+             FROM ascendants
+             LEFT JOIN nk_$this->table children ON ascendants.id = children.parent_id
+             ORDER BY ascendants.path"
+        );
+        $query->execute();
+        /**
+         * @var LocationEntity[]
+         */
+        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
+        $list = [];
+        foreach ($entities as $entity):
+            $list[$entity->get_id()] = str_repeat('– ', $entity->get_level()) . $entity->get_title();
         endforeach;
         return $list;
     }
@@ -243,7 +283,7 @@ final class LocationRepository extends RecursiveRepository
                      SELECT parent.parent_id, parent.title, parent.slug
                      FROM nk_$this->table parent
                      WHERE parent.status = 'published'
-                     AND parent.private IS NULL
+                     AND parent.private = 0
                      AND parent.id = $this->table.parent_id
                      UNION ALL
                      SELECT
@@ -253,7 +293,7 @@ final class LocationRepository extends RecursiveRepository
                      FROM nk_$this->table grandparent
                      JOIN parent ON grandparent.id = parent.parent_id
                      WHERE grandparent.status = 'published'
-                     AND grandparent.private IS NULL
+                     AND grandparent.private = 0
                      )
                  SELECT
                      JSON_ARRAYAGG(
@@ -269,7 +309,7 @@ final class LocationRepository extends RecursiveRepository
                   JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
                   WHERE photo_$this->table.{$this->table}_id = $this->table.id
                   AND photo.status = 'published'
-                  AND photo.private IS NULL
+                  AND photo.private_ids IS NULL
                   ORDER BY RAND()
                   LIMIT 1) AS thumbnail
              FROM nk_$this->table $this->table
@@ -298,19 +338,19 @@ final class LocationRepository extends RecursiveRepository
                      FROM nk_photo_$this->table photo_$this->table
                      JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
                      WHERE photo.status = 'published'
-                     AND photo.private IS NULL
+                     AND photo.private_ids IS NULL
                  ) photo ON photo.{$this->table}_id = children.id
                  LEFT JOIN nk_$this->table grandchildren ON children.id = grandchildren.parent_id
                  WHERE children.status = 'published'
                  AND (grandchildren.status = 'published' OR grandchildren.status IS NULL)
-                 AND children.private IS NULL
-                 AND grandchildren.private IS NULL
+                 AND children.private = 0
+                 AND (grandchildren.private = 0 OR grandchildren.private IS NULL)
                  GROUP BY children.id
                  ORDER BY children.title
              ) children ON $this->table.id = children.parent_id
              WHERE $this->table.status = 'published'
              AND (children.status = 'published' OR children.status IS NULL)
-             AND $this->table.private IS NULL
+             AND $this->table.private = 0
              AND $this->table.$field = :value
              GROUP BY $this->table.id"
         );
@@ -350,15 +390,15 @@ final class LocationRepository extends RecursiveRepository
                   JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
                   WHERE photo_$this->table.{$this->table}_id = $this->table.id
                   AND photo.status = 'published'
-                  AND photo.private IS NULL
+                  AND photo.private_ids IS NULL
                   ORDER BY RAND()
                   LIMIT 1) AS thumbnail
              FROM nk_$this->table $this->table
              LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
              WHERE $this->table.status = 'published'
              AND children.status = 'published'
-             AND $this->table.private IS NULL
-             AND children.private IS NULL
+             AND $this->table.private = 0
+             AND children.private = 0
              AND $this->table.parent_id IS NULL
              GROUP BY $this->table.id
              ORDER BY $this->table.title"
@@ -383,14 +423,14 @@ final class LocationRepository extends RecursiveRepository
                   JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
                   WHERE photo_$this->table.{$this->table}_id = $this->table.id
                   AND photo.status = 'published'
-                  AND photo.private IS NULL
+                  AND photo.private_ids IS NULL
                   ORDER BY RAND()
                   LIMIT 1) AS thumbnail
              FROM nk_$this->table $this->table
              LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
              WHERE children.id IS NULL
              AND $this->table.status = 'published'
-             AND $this->table.private IS NULL"
+             AND $this->table.private = 0"
         );
         $query->execute();
         $result = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -410,7 +450,7 @@ final class LocationRepository extends RecursiveRepository
                  FROM nk_$this->table children
                  LEFT JOIN nk_$this->table grandchildren ON children.id = grandchildren.parent_id
                  WHERE children.status = 'published'
-                 AND children.private IS NULL
+                 AND children.private = 0
                  AND children.parent_id = :id
                  UNION ALL
                  SELECT descendants.id, descendants.title, descendants.slug, descendants.coordinates, granddescendants.id
@@ -418,7 +458,7 @@ final class LocationRepository extends RecursiveRepository
                  JOIN children ON children.id = descendants.parent_id
                  LEFT JOIN nk_$this->table granddescendants ON descendants.id = granddescendants.parent_id
                  WHERE descendants.status = 'published'
-                 AND descendants.private IS NULL
+                 AND descendants.private = 0
              )
              SELECT DISTINCT children.title, children.slug, children.coordinates, FIRST_VALUE(photo.thumbnail) OVER (PARTITION BY children.id ORDER BY RAND()) AS thumbnail
              FROM children
@@ -426,7 +466,7 @@ final class LocationRepository extends RecursiveRepository
                    FROM nk_photo_$this->table photo_$this->table
                    JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
                    WHERE photo.status = 'published'
-                   AND photo.private IS NULL) photo ON photo.{$this->table}_id = children.id
+                   AND photo.private_ids IS NULL) photo ON photo.{$this->table}_id = children.id
              WHERE children IS NULL"
         );
         $query->execute(compact('id'));
@@ -447,7 +487,7 @@ final class LocationRepository extends RecursiveRepository
                  FROM nk_$this->table siblings
                  LEFT JOIN nk_$this->table children ON siblings.id = children.parent_id
                  WHERE siblings.status = 'published'
-                 AND siblings.private IS NULL
+                 AND siblings.private = 0
                  AND siblings.parent_id = :parent_id
                  UNION ALL
                  SELECT descendants.id, descendants.title, descendants.slug, descendants.coordinates, granddescendants.id
@@ -455,7 +495,7 @@ final class LocationRepository extends RecursiveRepository
                  JOIN siblings ON siblings.id = descendants.parent_id
                  LEFT JOIN nk_$this->table granddescendants ON descendants.id = granddescendants.parent_id
                  WHERE descendants.status = 'published'
-                 AND descendants.private IS NULL
+                 AND descendants.private = 0
              )
              SELECT DISTINCT title, slug, coordinates,
                  (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
@@ -463,7 +503,7 @@ final class LocationRepository extends RecursiveRepository
                   JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
                   WHERE photo_$this->table.{$this->table}_id = siblings.id
                   AND photo.status = 'published'
-                  AND photo.private IS NULL
+                  AND photo.private_ids IS NULL
                   ORDER BY RAND()
                   LIMIT 1) AS thumbnail
              FROM siblings
@@ -472,5 +512,126 @@ final class LocationRepository extends RecursiveRepository
         $query->execute(compact('parent_id'));
         $result = $query->fetchAll(PDO::FETCH_ASSOC);
         return $result;
+    }
+
+    /**
+     * use to update private_ids
+     */
+    public function find_categories_location_ids(array $photo_ids, array $categories_ids, int $contains): array
+    {
+        if (empty($photo_ids) || empty($categories_ids)):
+            return [];
+        endif;
+
+        $params = compact('contains');
+
+        $i = 0;
+        $in = [];
+        foreach ($photo_ids as $photo_id):
+            $key = ":id" . $i;
+            $in[] = $key;
+            $params[$key] = $photo_id;
+            $i++;
+        endforeach;
+        $in = implode(', ', $in);
+
+        foreach ($categories_ids as $category_id):
+            $categories_list[] = (string) $category_id;
+        endforeach;
+        $categories_list = json_encode($categories_list);
+
+        $query = $this->pdo->prepare(
+            "SELECT DISTINCT location.id
+             FROM nk_photo photo
+             JOIN nk_photo_location photo_location ON photo.id = photo_location.photo_id
+             JOIN nk_location location ON photo_location.location_id = location.id
+             WHERE photo.id IN ($in)
+             AND JSON_CONTAINS(JSON_PRETTY(COALESCE(location.private_ids, '[]')), '$categories_list') = :contains
+             GROUP BY location.id
+             HAVING SUM(JSON_CONTAINS(JSON_PRETTY(COALESCE(photo.private_ids, '[]')), '$categories_list')) < 2"
+        );
+        $query->execute($params);
+        return $query->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * use to update private
+     */
+    public function find_categories_location_visibility(array $photo_ids): array
+    {
+        if (empty($photo_ids)):
+            return [];
+        endif;
+
+        $params = [];
+
+        $i = 0;
+        $in = [];
+        foreach ($photo_ids as $photo_id):
+            $key = ":id" . $i;
+            $in[] = $key;
+            $params[$key] = $photo_id;
+            $i++;
+        endforeach;
+        $in = implode(', ', $in);
+
+        $query = $this->pdo->prepare(
+            "SELECT DISTINCT location.id, location.private, photo_nb.photos, photo_nb.private_photos
+             FROM nk_photo photo
+             JOIN nk_photo_location photo_location ON photo.id = photo_location.photo_id
+             JOIN nk_location location ON photo_location.location_id = location.id
+             JOIN (
+                 SELECT photo_location.location_id, COUNT(photo.id) AS photos, COUNT(CASE WHEN photo.private_ids IS NOT NULL THEN photo.id END) AS private_photos
+                 FROM nk_photo photo
+                 JOIN nk_photo_location photo_location ON photo.id = photo_location.photo_id
+                 GROUP BY photo_location.location_id
+             ) photo_nb ON photo_location.location_id = photo_nb.location_id
+             WHERE photo.id IN ($in)"
+        );
+        $query->execute($params);
+        return $query->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * used for edit photo
+     */
+    public function list_for_edit_photo(): array
+    {
+        $query = $this->pdo->prepare(
+            "WITH RECURSIVE ascendants AS (
+                 SELECT id, title, JSON_ARRAY(id) AS ascendants_ids, title AS path, 0 AS level
+                 FROM nk_$this->table
+                 WHERE status = 'published'
+                 AND parent_id IS NULL
+                 UNION ALL
+                 SELECT
+                     $this->table.id,
+                     $this->table.title,
+                     JSON_ARRAY_APPEND(ascendants.ascendants_ids, '$', $this->table.id),
+                     CONCAT(ascendants.path, ' > ', $this->table.title),
+                     ascendants.level + 1
+                 FROM nk_$this->table $this->table
+                 JOIN ascendants ON $this->table.parent_id = ascendants.id
+                 WHERE $this->table.status = 'published'
+             )
+             SELECT ascendants.title, MIN(ascendants_ids) AS ascendants_ids, MIN(level) AS level, COUNT(children.id) AS children_nb
+             FROM ascendants
+             LEFT JOIN nk_$this->table children ON ascendants.id = children.parent_id
+             GROUP BY ascendants.title
+             ORDER BY MIN(path)"
+        );
+        $query->execute();
+        /**
+         * @var LocationEntity[]
+         */
+        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
+        $list = [];
+        foreach ($entities as $entity):
+            $list[json_encode($entity->get_ascendants_ids())] = [
+                'label' => str_repeat('– ', $entity->get_level()) . $entity->get_title(),
+                'children' => $entity->has_children()
+            ];
+        endforeach;
+        return $list;
     }
 }

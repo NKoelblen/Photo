@@ -24,9 +24,8 @@ echo $HTML->head($title); ?>
 
 <section class="my-5">
     <h2 class="my-4">Catégories</h2>
-    <?php
-    // $category_HTML = new CategoryHTML($router);
-    // echo $category_HTML->collection_index($categories); ?>
+    <?php $category_HTML = new CategoryHTML($router, $category_controller);
+    echo $category_HTML->collection_index($categories); ?>
 </section>
 
 <section class="my-5">

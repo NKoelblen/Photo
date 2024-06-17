@@ -51,6 +51,5 @@ final class LocationController extends RecursiveController
         $filter_categories = (new CategoryRepository())->list_allowed();
 
         return $this->render('location/show', compact('title', 'post', 'markers', 'table', 'photos', 'pagination', 'link', 'filter_categories'));
-
     }
 }

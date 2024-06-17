@@ -35,16 +35,18 @@ abstract class PostRepository extends AppRepository
         }
         $set = implode(', ', $fields);
         $in = [];
-        $ids_params = [];
+        $i = 0;
         foreach ($ids as $id):
-            $key = ":id" . $id;
-            $in[] = $key;
-            $ids_params[$key] = $id;
+            $key = "id$i";
+            $in[] = ":$key";
+            $datas[$key] = $id;
+            $i++;
         endforeach;
         $in = implode(', ', $in);
         $ids_list = implode(', ', $ids);
+
         $query = $this->pdo->prepare("UPDATE nk_$this->table SET $set WHERE id IN ($in)");
-        $edit = $query->execute(array_merge($datas, $ids_params));
+        $edit = $query->execute($datas);
         if ($edit === false):
             throw new Exception($message ?: "Impossible de modifier les publications $ids_list dans la table $this->table.");
         endif;
@@ -94,5 +96,76 @@ abstract class PostRepository extends AppRepository
             endforeach;
         endif;
         return $table;
+    }
+    public function insert_private_ids(array $ids, array $private_ids, string $message = ''): void
+    {
+        if (empty($ids) || empty($private_ids)):
+            return;
+        endif;
+
+        $params = [];
+
+        $in = [];
+        $j = 0;
+        foreach ($ids as $id):
+            $key = "id$j";
+            $in[] = ":$key";
+            $params[$key] = $id;
+            $j++;
+        endforeach;
+        $in = implode(', ', $in);
+        $ids_list = implode(', ', $ids);
+
+        foreach ($private_ids as $private_id):
+            $contains = htmlentities($private_id);
+            $params['private_id'] = $private_id;
+
+            $query = $this->pdo->prepare(
+                "UPDATE nk_$this->table
+                 SET private_ids = JSON_ARRAY_APPEND(COALESCE(private_ids, JSON_PRETTY('[]')), '$', :private_id) 
+                 WHERE id IN ($in)
+                 AND JSON_CONTAINS(JSON_PRETTY(COALESCE(private_ids, '[]')), '$contains') = 0"
+            );
+            $edit = $query->execute($params);
+            if ($edit === false):
+                throw new Exception($message ?: "Impossible de modifier la visibilité des publications $ids_list dans la table $this->table.");
+            endif;
+        endforeach;
+    }
+    public function remove_private_ids(array $ids, array $private_ids, string $message = ''): void
+    {
+        if (empty($ids) || empty($private_ids)):
+            return;
+        endif;
+        $params = [];
+        $remove = [];
+        $i = 0;
+        foreach ($private_ids as $private_id) {
+            $key = "private_id$i";
+            $remove[] = "COALESCE(REPLACE(JSON_SEARCH(private_ids, 'one', :$key), '\"', ''), '$.a')";
+            $params[$key] = $private_id;
+            $i++;
+        }
+        $remove = implode(', ', $remove);
+        $in = [];
+        $j = 0;
+        foreach ($ids as $id):
+            $key = "id$j";
+            $in[] = ":$key";
+            $params[$key] = $id;
+            $j++;
+        endforeach;
+        $in = implode(', ', $in);
+        $ids_list = implode(', ', $ids);
+        $query = $this->pdo->prepare(
+            "UPDATE nk_$this->table 
+             SET private_ids = JSON_REMOVE(private_ids, $remove)
+             WHERE id IN ($in)
+             AND private_ids IS NOT NULL"
+        );
+        $edit = $query->execute($params);
+        if ($edit === false):
+            throw new Exception($message ?: "Impossible de modifier la visibilité des publications $ids_list dans la table $this->table.");
+        endif;
     }
 }

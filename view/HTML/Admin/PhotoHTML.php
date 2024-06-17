@@ -73,7 +73,8 @@ class PhotoHTML extends PostHTML
                 </a>
             <?php endif; ?>
         </td>
-        <td class="text-center px-3"><?= $photo->get_private() ? 'Privée' : ''; ?></td>
+        <td class="text-center px-3">
+            <?= $photo->get_private_ids() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?></td>
 
         <?php return ob_get_clean();
     }
@@ -181,7 +182,7 @@ class PhotoHTML extends PostHTML
                 <?= $form->recursive_radio('locations_ids', 'Emplacement', $locations, $attributes); ?>
             </div>
             <div class="col">
-                <?= $form->recursive_checkbox('categories_ids', 'Catégories', $categories, $attributes); ?>
+                <?= $form->recursive_checkbox('categories', 'Catégories', $categories, $attributes); ?>
             </div>
             <div class="col">
                 <?= $form->radio('album_id', 'Albums', $albums, $attributes); ?>
