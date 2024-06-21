@@ -25,7 +25,7 @@ abstract class RecursiveEntity extends CollectionEntity
     {
         return $this->parent_id;
     }
-    public function set_parent_id(int $parent_id): static
+    public function set_parent_id(?int $parent_id): static
     {
         $this->parent_id = $parent_id;
         return $this;

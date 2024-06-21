@@ -13,41 +13,33 @@ class PageController extends AppController
     {
         $title = 'Hello Word !';
 
-        $albums = (new AlbumRepository())->find_allowed_albums('date_from DESC', 8);
+        $albums = (new AlbumRepository())->find_home_allowed(per_page: 8);
         $album_controller = 'album';
 
         $location_repository = new LocationRepository();
-        $locations = $location_repository->find_allowed_roots_locations();
+        $locations = $location_repository->find_allowed_roots();
         $location_controller = 'location';
-        $markers = $location_repository->find_allowed_orphans_locations();
+        $markers = $location_repository->find_allowed_orphans();
 
         $category_repository = new CategoryRepository();
-        $categories = $category_repository->find_allowed_roots_categories();
+        $categories = $category_repository->find_allowed_roots();
         $category_controller = 'category';
 
         $years = (new YearRepository())->find_years();
         $years_controller = 'photo';
 
         return $this->render(
-            'page/home',
-            compact(
-                'title',
-                'albums',
-                'album_controller',
-                'locations',
-                'location_controller',
-                'categories',
-                'category_controller',
-                'years',
-                'years_controller',
-                'markers'
-            )
+            view: 'page/home',
+            data: compact('title', 'albums', 'album_controller', 'locations', 'location_controller', 'categories', 'category_controller', 'years', 'years_controller', 'markers')
         );
     }
 
     public function e404()
     {
         $title = 'Error 404';
-        return $this->render('page/e404', compact('title'));
+        return $this->render(
+            view: 'page/e404',
+            data: compact('title')
+        );
     }
 }

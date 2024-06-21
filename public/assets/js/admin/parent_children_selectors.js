@@ -1,20 +1,20 @@
 /* Disable Post Parent & Children on document load */
 
-let checkedParent = document.querySelector('input[name="parent_id"]:checked');
+let checkedParent = document.querySelector('input[name="parent"]:checked');
 let childToDisable;
 let ascendantToDisable;
 if (checkedParent) {
-	childToDisable = document.querySelector('input[name="children_ids[]"][value="' + checkedParent.value + '"]');
+	childToDisable = document.querySelector('input[name="children[]"][value="' + checkedParent.value.replaceAll('"', '\\"') + '"]');
 	childToDisable.setAttribute('disabled', '');
 	childToDisable.setAttribute('hidden', '');
 
 	disable_ascendants(childToDisable);
 }
 
-let checkedChildren = document.querySelectorAll('input[name="children_ids[]"]:checked');
+let checkedChildren = document.querySelectorAll('input[name="children[]"]:checked');
 if (checkedChildren) {
 	checkedChildren.forEach((child) => {
-		let parentToDisable = document.querySelector('input[name="parent_id"][value="' + child.value + '"]');
+		let parentToDisable = document.querySelector('input[name="parent"][value="' + child.value.replaceAll('"', '\\"') + '"]');
 		parentToDisable.setAttribute('disabled', '');
 		parentToDisable.setAttribute('hidden', '');
 
@@ -24,19 +24,17 @@ if (checkedChildren) {
 
 /* On Parent change, change disabled Child */
 
-const parents = document.querySelectorAll('input[name="parent_id"]');
+const parents = document.querySelectorAll('input[name="parent"]');
 parents.forEach((parent) => {
 	parent.addEventListener('change', (event) => {
 		if (childToDisable) {
 			childToDisable.removeAttribute('disabled', '');
 			childToDisable.removeAttribute('hidden', '');
 
-			enable_ascendants(childToDisable);
+			enable_ascendants(childToDisable.dataset.id);
 		}
-
-		checkedParent = event.target.value;
-
-		childToDisable = document.querySelector('input[name="children_ids[]"][value="' + checkedParent + '"]');
+		checkedParent = event.target.value.replaceAll('"', '\\"');
+		childToDisable = document.querySelector('input[name="children[]"][value="' + checkedParent + '"]');
 		childToDisable.setAttribute('disabled', '');
 		childToDisable.setAttribute('hidden', '');
 
@@ -46,12 +44,12 @@ parents.forEach((parent) => {
 
 /* On Child change, change Parent visibility */
 
-const children = document.querySelectorAll('input[name="children_ids[]"]');
+const children = document.querySelectorAll('input[name="children[]"]');
 children.forEach((child) => {
 	child.addEventListener('change', (event) => {
 		let isCheckedChild = event.target.checked;
-		let checkedChild = event.target.value;
-		let parentToChange = document.querySelector('input[name="parent_id"][value="' + checkedChild + '"]');
+		let checkedChild = event.target.value.replaceAll('"', '\\"');
+		let parentToChange = document.querySelector('input[name="parent"][value="' + checkedChild + '"]');
 		if (isCheckedChild) {
 			parentToChange.setAttribute('disabled', '');
 			parentToChange.setAttribute('hidden', '');
@@ -67,7 +65,7 @@ children.forEach((child) => {
 /* Functions */
 
 function disable_ascendants(childToDisable) {
-	ascendantToDisable = document.querySelector('input[name="children_ids[]"][value="' + childToDisable.dataset.parent + '"]');
+	ascendantToDisable = document.querySelector('input[name="children[]"][data-id="' + childToDisable.dataset.parent + '"]');
 	console.log(ascendantToDisable);
 	if (ascendantToDisable) {
 		ascendantToDisable.setAttribute('disabled', '');
@@ -77,7 +75,7 @@ function disable_ascendants(childToDisable) {
 }
 
 function enable_ascendants(childToEnable) {
-	ascendantToDisable = document.querySelector('input[name="children_ids[]"][value="' + childToEnable.dataset.parent + '"]');
+	ascendantToDisable = document.querySelector('input[name="children[]"][data-id="' + childToEnable.dataset.parent + '"]');
 	if (ascendantToDisable) {
 		ascendantToDisable.removeAttribute('disabled', '');
 		ascendantToDisable.removeAttribute('hidden', '');
@@ -86,7 +84,7 @@ function enable_ascendants(childToEnable) {
 }
 
 function disable_descendants(parentToDisable) {
-	let descendantsToDisable = document.querySelectorAll('input[name="parent_id"][data-parent="' + parentToDisable.value + '"]');
+	let descendantsToDisable = document.querySelectorAll('input[name="parent"][data-parent="' + parentToDisable.dataset.id + '"]');
 	if (descendantsToDisable) {
 		descendantsToDisable.forEach((descendant) => {
 			descendant.setAttribute('disabled', '');
@@ -98,7 +96,7 @@ function disable_descendants(parentToDisable) {
 }
 
 function enable_descendants(parentToEnable) {
-	let descendantsToDisable = document.querySelectorAll('input[name="parent_id"][data-parent="' + parentToEnable.value + '"]');
+	let descendantsToDisable = document.querySelectorAll('input[name="parent"][data-parent="' + parentToEnable.dataset.id + '"]');
 	if (descendantsToDisable) {
 		descendantsToDisable.forEach((descendant) => {
 			descendant.removeAttribute('disabled', '');

@@ -23,4 +23,35 @@ class CategoryHTML extends RecursiveHTML
         </div>
         <?php return ob_get_clean();
     }
+
+    public function category_columns_heads(): string
+    {
+        ob_start(); ?>
+
+        <th scope="col"></th>
+        <th scope="col" class="w-100 px-3" colspan="2">Titre</th>
+
+        <?php return ob_get_clean();
+    }
+
+    /**
+     * @param CategoryEntity $post
+     */
+    public function columns(object $post): string
+    {
+        ob_start(); ?>
+
+        <td class="text-center">
+            <?= $post->get_private() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?>
+        </td>
+        <td class="px-3">
+            <span><?= str_repeat('– ', $post->get_level()); ?></span>
+            <a
+                href="<?= $this->router->get_alto_router()->generate("$this->controller-show", ['slug' => $post->get_slug()]) ?>">
+                <?= $post->get_title(); ?>
+            </a>
+        </td>
+
+        <?php return ob_get_clean();
+    }
 }

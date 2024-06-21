@@ -40,8 +40,11 @@ final class AlbumController extends PostController
         endif;
 
         $table = $this->table;
+
+        $show_link = $this->router->get_alto_router()->generate($table);
+
         $data = array_merge(
-            compact('title', 'status_count', 'status', 'table'),
+            compact('title', 'status_count', 'status', 'table', 'show_link'),
             ['labels' => $this->labels],
             $this->index_part($status)
         );
@@ -50,8 +53,11 @@ final class AlbumController extends PostController
         endif;
 
         return $this->render(
-            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed' ? "admin/$table/new" : "admin/$table/index",
-            $data
+            view:
+            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed'
+            ? "admin/$table/new"
+            : "admin/$table/index",
+            data: $data
         );
     }
 
@@ -61,7 +67,7 @@ final class AlbumController extends PostController
          * @var AlbumRepository
          */
         $repository = new $this->repository;
-        [$pagination, $posts] = $repository->find_paginated_albums($status);
+        [$pagination, $posts] = $repository->find_paginated($status);
         $link = $this->router->get_alto_router()->generate("admin-$this->table");
         return compact('posts', 'pagination', 'link');
     }
@@ -83,7 +89,11 @@ final class AlbumController extends PostController
                 $fields_to_hydrate[] = $key;
             endforeach;
 
-            $repository->hydrate($form_post, $_POST, $fields_to_hydrate);
+            $repository->hydrate(
+                entity: $form_post,
+                datas: $_POST,
+                keys: $fields_to_hydrate
+            );
 
             $validator = new AlbumValidator($_POST, $repository);
             if ($validator->validate()):
@@ -94,7 +104,7 @@ final class AlbumController extends PostController
                     $datas_to_set[$key] = $form_post->$get_value();
                 endforeach;
 
-                $new_post = $repository->create_post($datas_to_set);
+                $new_post = $repository->create($datas_to_set);
 
                 $status = $form_post->get_status();
                 $query = [$status => 1];
@@ -120,7 +130,10 @@ final class AlbumController extends PostController
         endif;
 
         if (isset($_GET['status'])):
-            $this->edit_status($ids, $_GET['status']);
+            $this->edit_status(
+                ids: $ids,
+                status: $_GET['status']
+            );
             exit;
         endif;
 
@@ -148,7 +161,13 @@ final class AlbumController extends PostController
 
         $table = $this->table;
 
-        $form_post = $repository->find_album('id', $id);
+        $form_post = $repository->find(
+            field: 'id',
+            value: $id
+        );
+
+        $show_link = $this->router->get_alto_router()->generate($table);
+
         $errors = [];
         if (!empty($_POST)):
             $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
@@ -161,7 +180,11 @@ final class AlbumController extends PostController
                 endif;
             endforeach;
 
-            $repository->hydrate($form_post, array_merge($_POST, ['id' => $id]), $fields_to_hydrate);
+            $repository->hydrate(
+                entity: $form_post,
+                datas: array_merge($_POST, ['id' => $id]),
+                keys: $fields_to_hydrate
+            );
             $id = $form_post->get_id();
 
             $validator = new AlbumValidator($_POST, $repository, $id);
@@ -174,9 +197,9 @@ final class AlbumController extends PostController
                         $datas_to_set[$key] = $form_post->$get_value();
                     endif;
                 endforeach;
-                $repository->update_posts(
-                    [$id],
-                    $datas_to_set
+                $repository->update(
+                    ids: $ids,
+                    datas: $datas_to_set
                 );
 
                 $status = $form_post->get_status();
@@ -192,9 +215,9 @@ final class AlbumController extends PostController
         endif;
 
         return $this->render(
-            "admin/$table/edit",
-            array_merge(
-                compact('title', 'form_post', 'errors', 'status_count', 'status', 'table'),
+            view: "admin/$table/edit",
+            data: array_merge(
+                compact('title', 'form_post', 'errors', 'status_count', 'status', 'table', 'show_link'),
                 ['labels' => $this->labels],
                 $this->index_part($status)
             )

@@ -15,11 +15,21 @@ class AppHTML
         $this->controller = $controller;
     }
 
-    public function head(string $title): string
+    public function head(string $title, ?string $edit_link = null): string
     {
         ob_start(); ?>
         <h1 class="my-4">
             <?= $title; ?>
+            <?php if($edit_link):
+                if (session_status() === PHP_SESSION_NONE):
+                    session_start();
+                endif;
+                // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                    <a href="<?= $edit_link; ?>" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                <?php // endif; 
+            endif;?>
         </h1>
         <?php return ob_get_clean();
     }

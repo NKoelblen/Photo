@@ -8,8 +8,8 @@ final class JsonMapper
     public static function map(string $json, string $entity): AbstractEntity
     {
         $data = json_decode($json, true);
+        $class = new $entity;
         if ($data):
-            $class = new $entity;
             foreach ($data as $key => $value):
                 $method = "set_$key";
                 $class->$method($value);
@@ -27,15 +27,26 @@ final class JsonMapper
         $entities = [];
         if ($datas):
             foreach ($datas as $data):
-                $class = new $entity;
                 if (is_string($data)):
                     $data = json_decode($data, true);
                 endif;
-                foreach ($data as $key => $value):
-                    $method = "set_$key";
-                    $class->$method($value);
-                endforeach;
-                $entities[] = $class;
+                if (isset($data[0])):
+                    foreach ($data as $item):
+                        $class = new $entity;
+                        foreach ($item as $key => $value):
+                            $method = "set_$key";
+                            $class->$method($value);
+                        endforeach;
+                        $entities[] = $class;
+                    endforeach;
+                else:
+                    $class = new $entity;
+                    foreach ($data as $key => $value):
+                        $method = "set_$key";
+                        $class->$method($value);
+                    endforeach;
+                    $entities[] = $class;
+                endif;
             endforeach;
         endif;
         return $entities;

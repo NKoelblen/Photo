@@ -6,7 +6,10 @@ final class UserController extends AppController
     public function login()
     {
         $title = 'Se connecter';
-        return $this->render('auth/login', compact('title'));
+        return $this->render(
+            view: 'auth/login',
+            data: compact('title')
+        );
     }
 
     public function logout()

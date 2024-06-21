@@ -137,7 +137,7 @@ class Form
             <div class="container overflow-auto max-vh-50">
                 <?php foreach ($options as $key => $data):
                     if (is_array($this->entity->$get_field())):
-                        if (is_object($this->entity->$get_field()[0])):
+                        if (!empty($this->entity->$get_field()) && is_object($this->entity->$get_field()[0])):
                             $item_ids = [];
                             foreach ($this->entity->$get_field() as $item):
                                 $item_ids[] = $item->get_id();
@@ -183,7 +183,7 @@ class Form
             <div class="container overflow-auto max-vh-50">
                 <?php foreach ($options as $key => $data):
                     if (is_array($this->entity->$get_field())):
-                        if(is_object($this->entity->$get_field()[0])):
+                        if (!empty($this->entity->$get_field()) && is_object($this->entity->$get_field()[0])):
                             $item_ids = [];
                             foreach($this->entity->$get_field() as $item):
                                 $item_ids[] = $item->get_id();
@@ -226,60 +226,22 @@ class Form
     public function parent_radio(string $field, string $label, array $options, array $attributes = [], array $classes = []): string
     {
         $get_field = "get_$field";
-
         ob_start(); ?>
         <fieldset class="mb-3">
             <legend><?= $label; ?></legend>
             <div class="container overflow-auto max-vh-50">
                 <?php foreach ($options as $key => $data):
-                    if (is_array($this->entity->$get_field())):
-                        if (is_object($this->entity->$get_field()[0])):
-                            $item_ids = [];
-                            foreach ($this->entity->$get_field() as $item):
-                                $item_ids[] = $item->get_id();
-                            endforeach;
-                            $key_datas = json_decode($key, true);
-                            $key_ids = [];
-                            if (isset($key_datas['id'])):
-                                $key_ids[] = $key_datas['id'];
-                            else:
-                                foreach ($key_datas as $key_data):
-                                    $key_ids[] = $key_data['id'];
-                                endforeach;
-                            endif;
-                            foreach ($key_ids as $key_id):
-                                $checked = in_array($key_id, $item_ids) ? 'checked' : '';
-                            endforeach;
-                        else:
-                            $key_ids = json_decode($key, true);
-                            if (is_array($key_ids)):
-                                foreach ($key_ids as $key_id):
-                                    $checked = in_array($key_id, $this->entity->$get_field()) ? 'checked' : '';
-                                endforeach;
-                            else:
-                                $checked = in_array($key_ids, $this->entity->$get_field()) ? 'checked' : '';
-                            endif;
-                        endif;
-                    elseif (is_object($this->entity->$get_field())):
-                        $key_datas = json_decode($key, true);
-                        $key_ids = [];
-                        if (isset($key_datas['id'])):
-                            $key_ids[] = $key_datas['id'];
-                        else:
-                            foreach ($key_datas as $key_data):
-                                $key_ids[] = $key_data['id'];
-                            endforeach;
-                        endif;
-                        foreach ($key_ids as $key_id):
-                            $checked = $key_id === $this->entity->$get_field()->get_id() ? 'checked' : '';
-                        endforeach;
-                    else:
-                        $checked = $key === $this->entity->$get_field() ? 'checked' : '';
+                    $key_datas = json_decode($key, true);
+                    $data_id = $key_datas['id'];
+                    $checked = '';
+                    if($this->entity->$get_field()):
+                        $checked = $key_datas['id'] === $this->entity->$get_field()->get_id() ? 'checked' : '';
                     endif; ?>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="<?= $field; ?>" id="<?= $field . htmlentities($key); ?>"
                             value="<?= htmlentities($key); ?>" <?= $checked; ?> data-parent="<?= $data['parent_id']; ?>"
-                            <?= $key === $this->entity->get_id() ? 'disabled hidden' : ''; ?>>
+                            data-id="<?= $data_id; ?>"
+                            <?= $data_id === $this->entity->get_id() ? 'disabled hidden' : ''; ?>>
                         <label class="form-check-label" for="<?= $field . htmlentities($key); ?>" class="form-label">
                             <?= $data['label']; ?>
                         </label>
@@ -300,41 +262,20 @@ class Form
             <legend><?= $label; ?></legend>
             <div class="container overflow-auto max-vh-50">
                 <?php foreach ($options as $key => $data):
-                    if (is_array($this->entity->$get_field())):
-                        if (is_object($this->entity->$get_field()[0])):
-                            $item_ids = [];
-                            foreach ($this->entity->$get_field() as $item):
-                                $item_ids[] = $item->get_id();
-                            endforeach;
-                            $key_datas = json_decode($key, true);
-                            $key_ids = [];
-                            if(isset($key_datas['id'])) :
-                                $key_ids[] = $key_datas['id'];
-                            else:
-                                foreach ($key_datas as $key_data):
-                                    $key_ids[] = $key_data['id'];
-                                endforeach;
-                            endif;
-                            foreach ($key_ids as $key_id):
-                                $checked = in_array($key_id, $item_ids) ? 'checked' : '';
-                            endforeach;
-                        else:
-                            $key_ids = json_decode($key, true);
-                            if(is_array($key_ids)):
-                                foreach ($key_ids as $key_id):
-                                    $checked = in_array($key_id, $this->entity->$get_field()) ? 'checked' : '';
-                                endforeach;
-                            else:
-                                $checked = in_array($key_ids, $this->entity->$get_field()) ? 'checked' : '';
-                            endif;
-                        endif;
-                    else:
-                        $checked = $key === $this->entity->$get_field() ? 'checked' : '';
+                    $checked = '';
+                    $key_datas = json_decode($key, true);
+                    $id = $key_datas['id'];
+                    if($this->entity->$get_field()):
+                        $item_ids = [];
+                        foreach ($this->entity->$get_field() as $item):
+                            $item_ids[] = $item->get_id();
+                        endforeach;
+                        $checked = in_array($id, $item_ids) ? 'checked' : '';
                     endif; ?>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="<?= $field; ?>[]" id="<?= $field . htmlentities($key); ?>"
-                            value="<?= htmlentities($key); ?>" <?= $checked; ?> data-parent="<?= $data['parent_id']; ?>"
-                            <?= $key === $this->entity->get_id() ? 'disabled hidden' : ''; ?>>
+                            value="<?= htmlentities($key); ?>" <?= $checked; ?> data-parent="<?= $data['parent_id']; ?>" data-id="<?= $id; ?>"
+                            <?= $id === $this->entity->get_id() ? 'disabled hidden' : ''; ?>>
                         <label class="form-check-label" for="<?= $field . htmlentities($key); ?>" class="form-label">
                             <?= $data['label']; ?>
                         </label>

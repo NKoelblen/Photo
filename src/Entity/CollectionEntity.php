@@ -6,18 +6,7 @@ use App\Helpers\JsonMapper;
 
 abstract class CollectionEntity extends PostEntity
 {
-    protected int $private = 0;
     protected ?string $thumbnail = null;
-
-    public function get_private(): int
-    {
-        return $this->private;
-    }
-    public function set_private(int $private): static
-    {
-        $this->private = $private;
-        return $this;
-    }
 
     /**
      * @return PhotoEntity

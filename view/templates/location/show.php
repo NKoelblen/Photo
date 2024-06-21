@@ -3,7 +3,7 @@ use App\HTML\LocationHTML;
 use App\HTML\PhotoHTML;
 
 $HTML = new LocationHTML($router, $table);
-echo $HTML->head($title);
+echo $HTML->head($title, $edit_link);
 echo $HTML->recursive_breadcrumb($post);
 if ($post->get_children()):
     echo $HTML->collection_index($post->get_children());

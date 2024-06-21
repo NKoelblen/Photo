@@ -41,21 +41,19 @@ class AppRouter extends AbstractRouter
                 'target' => "$class#show",
                 'name' => "$controller-show"
             ];
-            $routes[] =
-                [
-                    'method' => 'GET|POST',
-                    'route' => "/admin/$controller",
-                    'target' => "$admin_class#index",
-                    'name' => "admin-$controller"
-                ];
+            $routes[] = [
+                'method' => 'GET|POST',
+                'route' => "/admin/$controller",
+                'target' => "$admin_class#index",
+                'name' => "admin-$controller"
+            ];
             foreach ($actions as $action):
-                $routes[] =
-                    [
-                        'method' => 'GET|POST',
-                        'route' => "/admin/$controller/$action/[i:id]?",
-                        'target' => "$admin_class#$action",
-                        'name' => "admin-$controller-$action"
-                    ];
+                $routes[] = [
+                    'method' => 'GET|POST',
+                    'route' => "/admin/$controller/$action/[i:id]?",
+                    'target' => "$admin_class#$action",
+                    'name' => "admin-$controller-$action"
+                ];
             endforeach;
         endforeach;
         $auth_actions = ['login', 'logout', 'profile'];

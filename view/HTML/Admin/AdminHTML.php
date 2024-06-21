@@ -17,6 +17,25 @@ class AdminHTML extends AppHTML
         $this->labels = $labels;
     }
 
+    public function head(string $title, ?string $show_link = null): string
+    {
+        ob_start(); ?>
+        <h1 class="my-4">
+            <?= $title; ?>
+            <?php if ($show_link):
+                if (session_status() === PHP_SESSION_NONE):
+                    session_start();
+                endif;
+                // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                <a href="<?= $show_link; ?>" class="btn btn-primary">
+                    <i class="bi bi-eye"></i>
+                </a>
+            <?php // endif; 
+            endif; ?>
+        </h1>
+        <?php return ob_get_clean();
+    }
+
     public function index(array $posts, Pagination $pagination, string $link, string $columns_heads, string $tfoot, string $status, array $status_count = [])
     {
         ob_start();

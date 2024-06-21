@@ -26,15 +26,7 @@
         )
     ): ?>
         <script src="/assets/js/admin/parent_children_selectors.js" defer></script>
-    <?php endif;
-    if (
-        str_contains($_SERVER['REQUEST_URI'], 'admin/category')
-        && (
-            !isset($_GET['status'])
-            || $_GET['status'] !== 'trashed'
-        )
-    ): ?>
-        <script src="/assets/js/admin/category_status.js" defer></script>
+        <script src="/assets/js/admin/status.js" defer></script>
     <?php endif;
     if (
         str_contains($_SERVER['REQUEST_URI'], 'admin/location')
@@ -94,7 +86,7 @@
                         ];
                         foreach ($controllers as $controller => $label): ?>
                             <li class="nav-item">
-                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === "/admin/$controller" ? 'active' : ''; ?>"
+                                <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], "/admin/$controller") ? 'active' : ''; ?>"
                                     href="<?= $router->get_alto_router()->generate("admin-$controller") ?>"><?= $label; ?></a>
                             </li>
                         <?php endforeach;

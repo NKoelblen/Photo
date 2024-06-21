@@ -54,7 +54,7 @@ class PhotoHTML extends PostHTML
                                                 <?php // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
                                                 <a href="<?= $this->router->get_alto_router()->generate("admin-$this->controller-edit", ['id' => $photo->get_id()]); ?>"
                                                     class="btn btn-primary">
-                                                    <i class="bi bi-pencil-fill"></i>
+                                                    <i class="bi bi-pencil"></i>
                                                 </a>
                                                 <?php // endif; ?>
                                             </h2>

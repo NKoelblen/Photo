@@ -3,7 +3,7 @@ use App\HTML\AlbumHTML;
 use App\HTML\PhotoHTML;
 
 $HTML = new AlbumHTML($router, $table);
-echo $HTML->head($title);
+echo $HTML->head($title, $edit_link);
 
 $photo_HTML = new PhotoHTML($router, 'photo');
 echo $photo_HTML->filter($filter_locations, $filter_categories);

@@ -18,14 +18,18 @@ final class PhotoController extends AppController
         endif;
 
         /* Photos */
-        [$pagination, $photos] = (new $this->repository)->find_paginated_allowed_photos($datas);
+        [$pagination, $photos] = (new $this->repository)->find_paginated_allowed($datas);
 
         $table = $this->table;
         $link = $this->router->get_alto_router()->generate($table);
+        $edit_link = $this->router->get_alto_router()->generate("admin-$table");
 
-        $filter_locations = (new LocationRepository())->list_allowed();
-        $filter_categories = (new CategoryRepository())->list_allowed();
+        $filter_locations = (new LocationRepository())->filter_allowed(filters: $datas);
+        $filter_categories = (new CategoryRepository())->filter_allowed(filters: $datas);
 
-        return $this->render('photo/index', compact('title', 'photos', 'pagination', 'link', 'table', 'filter_locations', 'filter_categories'));
+        return $this->render(
+            view: 'photo/index',
+            data: compact('title', 'photos', 'pagination', 'link', 'table', 'filter_locations', 'filter_categories', 'edit_link')
+        );
     }
 }

@@ -4,7 +4,7 @@ use App\HTML\Admin\PhotoHTML;
 $HTML = new PhotoHTML($router, $table, $labels);
 
 echo $HTML->alerts();
-echo $HTML->head($title);
+echo $HTML->head($title, $show_link);
 
 echo $HTML->bulk_create_photo();
 

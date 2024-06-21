@@ -4,40 +4,46 @@ namespace App\Repository;
 
 use App\DataBase\DBConnection;
 use App\Entity\AbstractEntity;
-use App\Repository\Exception\NotFoundException;
 use App\URL;
-use Exception;
 use PDO;
 
 class Pagination
 {
+    private PDO $pdo;
+    private string $table;
+    private object $repository;
     private string $query;
     private string $query_count;
     private array $params;
     private string $order;
-    private PDO $pdo;
     private int $per_page;
     private ?int $count = null;
     private ?array $entities = null;
 
     public function __construct(
+        string $table,
         string $query,
         string $query_count,
         array $params,
         string $order = 'id ASC',
-        int $per_page = 20,
-        PDO $pdo = null
+        int $per_page = 20
     ) {
+        $this->pdo = DBConnection::get_pdo();
+        $this->table = $table;
+        $repository = 'App\Repository\\' . ucfirst($table) . 'Repository';
+        $this->repository = new $repository();
         $this->query = $query;
         $this->query_count = $query_count;
         $this->params = $params;
         $this->order = htmlentities($order);
-        $this->pdo = $pdo ?: DBConnection::get_pdo();
         $this->per_page = $per_page;
         if ($this->count === null):
-            $query = $this->pdo->prepare($this->query_count);
-            $query->execute($this->params);
-            $this->count = (int) $query->fetch(PDO::FETCH_NUM)[0];
+            $this->count = (int) $this->repository->execute_query(
+            sql_query: $this->query_count,
+            params: $this->params,
+            method: 'fetch',
+            mode: [PDO::FETCH_NUM]
+            )[0];
         endif;
 
     }
@@ -59,13 +65,10 @@ class Pagination
 
             $offset = $this->per_page * ($this->get_current_page() - 1);
             $this->query .= " ORDER BY $this->order LIMIT $this->per_page OFFSET $offset";
-            $query = $this->pdo->prepare($this->query);
-            $query->execute($this->params);
-            $this->entities = $query->fetchAll(PDO::FETCH_CLASS, $entity);
-        endif;
-        if ($this->entities === false):
-            $fields = implode($this->params);
-            throw new NotFoundException($table, $fields, $message);
+            $this->entities = $this->repository->fetch_entities(
+                sql_query: $this->query,
+                params: $this->params
+            );
         endif;
         return $this->entities;
     }
@@ -92,49 +95,34 @@ class Pagination
 
     public function previous_link(string $link): ?string
     {
-        $datas = $_GET;
-        if (isset($datas['page'])):
-            unset($datas['page']);
-        endif;
-        $status = ['published', 'draft', 'trashed', 'delete'];
-        foreach ($status as $state):
-            if (isset($datas[$state])):
-                unset($datas[$state]);
-            endif;
-        endforeach;
-
-        $link .= '?' . http_build_query(array_merge($datas, $this->get_current_page() > 2 ? ['page' => $this->get_current_page() - 1] : []));
+        $link .= '?' . http_build_query(array_merge($this->query_string(), $this->get_current_page() > 2 ? ['page' => $this->get_current_page() - 1] : []));
         return $link;
     }
 
     public function number_link(string $link, int $number): ?string
     {
-        $datas = $_GET;
-        if (isset($datas['page'])):
-            unset($datas['page']);
-        endif;
-        $status = ['published', 'draft', 'trashed', 'delete'];
-        foreach ($status as $state):
-            if (isset($datas[$state])):
-                unset($datas[$state]);
-            endif;
-        endforeach;
-
-        $query_string = http_build_query(array_merge($datas, $number !== 1 ? ['page' => $number] : []));
+        $query_string = http_build_query(array_merge($this->query_string(), $number !== 1 ? ['page' => $number] : []));
         return "$link?$query_string";
     }
 
     public function next_link(string $link): ?string
     {
+        $query_string = http_build_query(array_merge($this->query_string(), ['page' => $this->get_current_page() + 1]));
+        return "$link?$query_string";
+    }
+
+    private function query_string(): array
+    {
         $datas = $_GET;
+        if (isset($datas['page'])):
+            unset($datas['page']);
+        endif;
         $status = ['published', 'draft', 'trashed', 'delete'];
-        foreach ($status as $state):
-            if (isset($datas[$state])):
-                unset($datas[$state]);
+        foreach ($status as $stat):
+            if (isset($datas[$stat])):
+                unset($datas[$stat]);
             endif;
         endforeach;
-
-        $query_string = http_build_query(array_merge($datas, ['page' => $this->get_current_page() + 1]));
-        return "$link?$query_string";
+        return $datas;
     }
 }

@@ -47,9 +47,9 @@
             'dev_requirement' => false,
         ),
         'intervention/image' => array(
-            'pretty_version' => '3.6.5',
-            'version' => '3.6.5.0',
-            'reference' => 'd428433aa74836ab75e8d4a5241628bebb7f4077',
+            'pretty_version' => '3.7.0',
+            'version' => '3.7.0.0',
+            'reference' => '6bfd3dd1d430c5224c728dc4f8b2fdc757b5eaf5',
             'type' => 'library',
             'install_path' => __DIR__ . '/../intervention/image',
             'aliases' => array(),

@@ -3,9 +3,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\CategoryEntity;
 use App\Helpers\Text;
-use App\Repository\AlbumRepository;
 use App\Repository\CategoryRepository;
-use App\Repository\LocationRepository;
 use App\Repository\PhotoRepository;
 use App\Validator\CategoryValidator;
 
@@ -43,8 +41,11 @@ final class CategoryController extends RecursiveController
         endif;
 
         $table = $this->table;
+
+        $show_link = $this->router->get_alto_router()->generate($table);
+
         $data = array_merge(
-            compact('title', 'status_count', 'status', 'table'),
+            compact('title', 'status_count', 'status', 'table', 'show_link'),
             ['labels' => $this->labels],
             $this->index_part($status)
         );
@@ -53,8 +54,11 @@ final class CategoryController extends RecursiveController
         endif;
 
         return $this->render(
-            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed' ? "admin/$table/new" : "admin/$table/index",
-            $data
+            view:
+            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed'
+            ? "admin/$table/new"
+            : "admin/$table/index",
+            data: $data
         );
     }
     private function index_part(string $status): array
@@ -63,7 +67,15 @@ final class CategoryController extends RecursiveController
          * @var CategoryRepository
          */
         $repository = new $this->repository;
-        [$pagination, $posts] = $repository->find_paginated_categories($status);
+        if ($status === 'published'):
+            [$pagination, $posts] = $repository->find_paginated_recursives(columns: ['private']);
+        else:
+            [$pagination, $posts] = $repository->find_paginated(
+                status: $status,
+                columns: ['id', 'title', 'slug', 'private'],
+                order: 'title'
+            );
+        endif;
         $link = $this->router->get_alto_router()->generate("admin-$this->table");
         return compact('posts', 'pagination', 'link');
     }
@@ -78,7 +90,7 @@ final class CategoryController extends RecursiveController
          */
         $repository = new $this->repository;
 
-        $list = $repository->list_categories();
+        $list = $repository->form_list();
 
         if (!empty($_POST)):
             $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
@@ -87,7 +99,11 @@ final class CategoryController extends RecursiveController
                 $fields_to_hydrate[] = $key;
             endforeach;
 
-            $repository->hydrate($form_post, $_POST, $fields_to_hydrate);
+            $repository->hydrate(
+                entity: $form_post,
+                datas: $_POST,
+                keys: $fields_to_hydrate
+            );
 
             $validator = new CategoryValidator($_POST, [], $repository);
             if ($validator->validate()):
@@ -101,8 +117,8 @@ final class CategoryController extends RecursiveController
                 endforeach;
 
                 $new_post = $repository->create_recursive(
-                    $datas_to_set,
-                    $_POST['children_ids'] ?? null
+                    datas: $datas_to_set,
+                    children_ids: $_POST['children_ids'] ?? null
                 );
 
                 $status = $form_post->get_status();
@@ -143,17 +159,23 @@ final class CategoryController extends RecursiveController
             if ($_GET['status'] === 'trashed'):
                 $this->trash($ids);
             elseif ($_GET['status'] === 'draft'):
-                $this->draft($ids, ['parent_id' => null]);
+                $this->draft(
+                    ids: $ids,
+                    datas: ['parent_id' => null]
+                );
             else:
                 $this->edit_status($ids, $_GET['status']);
                 $photo_repository = new PhotoRepository();
-                $private_categories_ids = $repository->find_private_categories_ids($ids);
-                $photos_ids = $photo_repository->find_categories_photos($private_categories_ids);
-                $photo_repository->insert_private_ids($photos_ids, $private_categories_ids);
-                $this->add_private_ids('album', $photos_ids, $private_categories_ids);
-                $this->add_private_ids('location', $photos_ids, $private_categories_ids);
-                $this->upddate_private('album', $photos_ids);
-                $this->upddate_private('location', $photos_ids);
+                $private_categories_ids = $repository->private_ids_list($ids);
+                if (!empty($private_categories_ids)):
+                    $photos_ids = $photo_repository->list_by_categories($private_categories_ids);
+                    if (!empty($photos_ids)):
+                        $photo_repository->insert_private_ids(
+                            ids: $photos_ids,
+                            private_ids: $private_categories_ids
+                        );
+                    endif;
+                endif;
             endif;
             exit;
         endif;
@@ -183,8 +205,15 @@ final class CategoryController extends RecursiveController
         /**
          * Get form datas
          */
-        $form_post = $repository->find_category('id', $id);
-        $list = $repository->list_categories();
+        $form_post = $repository->find(
+            columns: ['private'],
+            field: 'id',
+            value: $id
+        );
+        $list = $repository->form_list();
+
+        $show_link = $this->router->get_alto_router()->generate($table);
+
         $errors = [];
 
         /**
@@ -196,24 +225,35 @@ final class CategoryController extends RecursiveController
              * Hydrate post
              */
             $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
-            $_POST['private'] = $_POST['private'] ?? 0;
+            $_POST['parent'] = $_POST['parent'] ?? null;
+            $_POST['children'] = $_POST['children'] ?? null;
+
+            if (!is_null($_POST['parent']) && json_decode($_POST['parent'], true)['private'] === 1):
+                $_POST['private'] = 1;
+            else:
+                $_POST['private'] = $_POST['private'] ?? 0;
+            endif;
 
             $old_children = $form_post->get_children();
 
             $fields_to_hydrate = ['id'];
             foreach ($_POST as $key => $value):
                 $get_value = "get_$key";
-                if ($form_post->$get_value() != $value):
+                if ($form_post->$get_value() !== $value):
                     $fields_to_hydrate[] = $key;
                 endif;
             endforeach;
-            $repository->hydrate($form_post, array_merge($_POST, ['id' => $id]), $fields_to_hydrate);
+            $repository->hydrate(
+                entity: $form_post,
+                datas: array_merge($_POST, ['id' => $id]),
+                keys: $fields_to_hydrate
+            );
             $id = $form_post->get_id();
 
             /**
              * Validate form...
              */
-            $validator = new CategoryValidator($_POST, [], $repository, $id);
+            $validator = new CategoryValidator($_POST, array_keys($list), $repository, $id);
             if ($validator->validate()):
 
                 /**
@@ -224,7 +264,7 @@ final class CategoryController extends RecursiveController
                 foreach ($_POST as $key => $value):
                     if ($key !== 'children'):
                         if ($key === 'parent'):
-                            $datas_to_set['parent_id'] = $form_post->get_parent()->get_id();
+                            $datas_to_set['parent_id'] = !is_null($form_post->get_parent()) ? $form_post->get_parent()->get_id() : null;
                         else:
                             $get_value = "get_$key";
                             $datas_to_set[$key] = $form_post->$get_value();
@@ -233,15 +273,17 @@ final class CategoryController extends RecursiveController
                             endif;
                         endif;
                     else:
-                        foreach ($value as $item):
-                            $children_ids[] = json_decode($item, true)['id'];
-                        endforeach;
+                        if (!is_null($form_post->get_children())):
+                            foreach ($value as $item):
+                                $children_ids[] = json_decode($item, true)['id'];
+                            endforeach;
+                        endif;
                     endif;
                 endforeach;
                 $descendants_ids = $repository->update_categories(
-                    $ids,
-                    $datas_to_set,
-                    $children_ids
+                    ids: $ids,
+                    datas: $datas_to_set,
+                    children_ids: $children_ids
                 );
 
                 /**
@@ -257,9 +299,8 @@ final class CategoryController extends RecursiveController
                 endif;
                 if (!empty($children_to_remove)):
                     $repository->update_recursives(
-                        $children_to_remove,
-                        ['parent_id' => null],
-                        null
+                        ids: $children_to_remove,
+                        datas: ['parent_id' => null],
                     );
                 endif;
 
@@ -267,30 +308,24 @@ final class CategoryController extends RecursiveController
                  * Update photos, albums & locations
                  */
                 if (isset($datas_to_set['private'])):
+
                     $photo_repository = new PhotoRepository();
                     switch ($datas_to_set['private']) {
                         case 1:
                             $category_ids = array_merge($ids, $descendants_ids);
-                            $photos_ids = $photo_repository->find_categories_photos($category_ids);
-                            $photo_repository->insert_private_ids($photos_ids, $category_ids);
+                            $photos_ids = $photo_repository->list_by_categories($category_ids);
+                            $photo_repository->insert_private_ids(
+                                ids: $photos_ids,
+                                private_ids: $category_ids
+                            );
                             break;
                         case 0:
-                            $photos_ids = $photo_repository->find_categories_photos($ids);
-                            $photo_repository->remove_private_ids($photos_ids, $ids);
+                            $photos_ids = $photo_repository->list_by_categories($ids);
+                            $photo_repository->remove_private_ids(
+                                ids: $photos_ids,
+                                private_ids: $ids
+                            );
                     }
-
-                    switch ($datas_to_set['private']) {
-                        case 1:
-                            $categories_ids = array_merge($ids, $descendants_ids);
-                            $this->add_private_ids('album', $photos_ids, $categories_ids);
-                            $this->add_private_ids('location', $photos_ids, $categories_ids);
-                            break;
-                        case 0:
-                            $this->remove_private_ids('album', $photos_ids, $ids);
-                            $this->remove_private_ids('location', $photos_ids, $ids);
-                    }
-                    $this->upddate_private('album', $photos_ids);
-                    $this->upddate_private('location', $photos_ids);
                 endif;
 
 
@@ -318,9 +353,9 @@ final class CategoryController extends RecursiveController
          * Render view
          */
         return $this->render(
-            "admin/$table/edit",
-            array_merge(
-                compact('title', 'form_post', 'list', 'errors', 'status_count', 'status', 'table'),
+            view: "admin/$table/edit",
+            data: array_merge(
+                compact('title', 'form_post', 'list', 'errors', 'status_count', 'status', 'table', 'show_link'),
                 ['labels' => $this->labels],
                 $this->index_part($status)
             )
@@ -336,25 +371,32 @@ final class CategoryController extends RecursiveController
         /**
          * @var CategoryEntity[]
          */
-        $posts = $repository->find_recursives($ids);
+        $posts = $repository->find_all($ids);
         foreach ($posts as $post):
             if ($post->get_children_ids()):
                 $repository->update_recursives(
-                    $post->get_children_ids(),
-                    ['parent_id' => $post->get_parent_id()]
+                    ids: $post->get_children_ids(),
+                    datas: ['parent_id' => $post->get_parent_id()]
                 );
             endif;
         endforeach;
-        $this->edit_status($ids, 'draft', $datas);
+        $this->edit_status(
+            ids: $ids,
+            status: 'draft',
+            datas: $datas
+        );
 
         $photo_repository = new PhotoRepository();
-        $private_categories_ids = $repository->find_private_categories_ids($ids);
-        $photos_ids = $photo_repository->find_categories_photos($private_categories_ids);
-        $photo_repository->remove_private_ids($photos_ids, $private_categories_ids);
-        $this->remove_private_ids('album', $photos_ids, $private_categories_ids);
-        $this->remove_private_ids('location', $photos_ids, $private_categories_ids);
-        $this->upddate_private('album', $photos_ids);
-        $this->upddate_private('location', $photos_ids);
+        $private_categories_ids = $repository->private_ids_list($ids);
+        if (!empty($private_categories_ids)):
+            $photos_ids = $photo_repository->list_by_categories($private_categories_ids);
+            if (!empty($photos_ids)):
+                $photo_repository->remove_private_ids(
+                    ids: $photos_ids,
+                    private_ids: $private_categories_ids
+                );
+            endif;
+        endif;
     }
 
     public function trash(array $ids): void
@@ -363,25 +405,28 @@ final class CategoryController extends RecursiveController
          * @var CategoryRepository
          */
         $repository = new $this->repository;
-        $posts = $repository->find_recursives($ids);
+        $posts = $repository->find_all($ids);
         foreach ($posts as $post):
             if ($post->get_children_ids()):
                 $repository->update_recursives(
-                    $post->get_children_ids(),
-                    ['parent_id' => $post->get_parent_id()]
+                    ids: $post->get_children_ids(),
+                    datas: ['parent_id' => $post->get_parent_id()]
                 );
             endif;
         endforeach;
         $this->edit_status($ids, 'trashed', ['parent_id' => null]);
 
         $photo_repository = new PhotoRepository();
-        $private_categories_ids = $repository->find_private_categories_ids($ids);
-        $photos_ids = $photo_repository->find_categories_photos($private_categories_ids);
-        $photo_repository->remove_private_ids($photos_ids, $private_categories_ids);
-        $this->remove_private_ids('album', $photos_ids, $private_categories_ids);
-        $this->remove_private_ids('location', $photos_ids, $private_categories_ids);
-        $this->upddate_private('album', $photos_ids);
-        $this->upddate_private('location', $photos_ids);
+        $private_categories_ids = $repository->private_ids_list($ids);
+        if (!empty($private_categories_ids)):
+            $photos_ids = $photo_repository->list_by_categories($private_categories_ids);
+            if (!empty($photos_ids)):
+                $photo_repository->remove_private_ids(
+                    ids: $photos_ids,
+                    private_ids: $private_categories_ids
+                );
+            endif;
+        endif;
     }
 
 }

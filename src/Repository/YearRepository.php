@@ -2,24 +2,35 @@
 namespace App\Repository;
 
 use App\Entity\YearEntity;
-use PDO;
 
-class YearRepository extends PostRepository
+class YearRepository extends CollectionRepository
 {
-    protected ?string $table = 'photo';
+    protected ?string $table = '';
     protected ?string $entity = YearEntity::class;
 
-    public function find_years()
+    public function __construct()
     {
-        return $this->pdo->query(
+        parent::__construct();
+        $this->table = $this->photo_table;
+    }
+
+
+    /********** PUBLIC **********/
+
+    /**
+     * @return YearEntity[]
+     */
+    public function find_years(): array
+    {
+        return $this->fetch_entities(
+            sql_query:
             "SELECT DISTINCT
                  YEAR(created_at) AS title,
                  FIRST_VALUE(JSON_OBJECT('path', path, 'description', description)) OVER (PARTITION BY YEAR(created_at) ORDER BY RAND()) AS thumbnail
-             FROM nk_photo
-             WHERE status = 'published'
-             AND private_ids IS NULL
+             FROM nk_$this->table p
+             WHERE $this->photo_allowed
              ORDER BY YEAR(created_at) DESC
-             LIMIT 8"
-        )->fetchAll(PDO::FETCH_CLASS, $this->entity);
+             LIMIT 8",
+        );
     }
 }

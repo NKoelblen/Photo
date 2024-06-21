@@ -4,7 +4,7 @@ use App\HTML\Admin\AlbumHTML;
 $HTML = new AlbumHTML($router, $table, $labels);
 
 echo $HTML->alerts();
-echo $HTML->head($title);
+echo $HTML->head($title, $show_link);
 
 ob_start();
 echo $HTML->post_columns_heads();

@@ -40,8 +40,11 @@ final class LocationController extends RecursiveController
         endif;
 
         $table = $this->table;
+
+        $show_link = $this->router->get_alto_router()->generate($table);
+
         $data = array_merge(
-            compact('title', 'status_count', 'status', 'table'),
+            compact('title', 'status_count', 'status', 'table', 'show_link'),
             ['labels' => $this->labels],
             $this->index_part($status)
         );
@@ -50,8 +53,11 @@ final class LocationController extends RecursiveController
         endif;
 
         return $this->render(
-            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed' ? "admin/$table/new" : "admin/$table/index",
-            $data
+            view:
+            (!isset($_GET['index-status']) || $_GET['index-status'] === 'draft') && $status !== 'trashed'
+            ? "admin/$table/new"
+            : "admin/$table/index",
+            data: $data
         );
     }
 
@@ -61,7 +67,14 @@ final class LocationController extends RecursiveController
          * @var LocationRepository
          */
         $repository = new $this->repository;
-        [$pagination, $posts] = $repository->find_paginated_locations($status);
+        if ($status === 'published'):
+            [$pagination, $posts] = $repository->find_paginated_recursives();
+        else:
+            [$pagination, $posts] = $repository->find_paginated(
+                status: $status,
+                order: 'title'
+            );
+        endif;
         $link = $this->router->get_alto_router()->generate("admin-$this->table");
         return compact('posts', 'pagination', 'link');
     }
@@ -76,7 +89,7 @@ final class LocationController extends RecursiveController
          */
         $repository = new $this->repository;
 
-        $list = $repository->list_locations();
+        $list = $repository->form_list();
 
         if (!empty($_POST)):
             $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
@@ -85,7 +98,11 @@ final class LocationController extends RecursiveController
                 $fields_to_hydrate[] = $key;
             endforeach;
 
-            $repository->hydrate($form_post, $_POST, $fields_to_hydrate);
+            $repository->hydrate(
+                entity: $form_post,
+                datas: $_POST,
+                keys: $fields_to_hydrate
+            );
 
             $validator = new LocationValidator($_POST, [], $repository);
             if ($validator->validate()):
@@ -99,8 +116,8 @@ final class LocationController extends RecursiveController
                 endforeach;
 
                 $new_post = $repository->create_recursive(
-                    $datas_to_set,
-                    $_POST['children_ids'] ?? null
+                    datas: $datas_to_set,
+                    children_ids: $_POST['children_ids'] ?? null
                 );
 
                 $status = $form_post->get_status();
@@ -131,10 +148,16 @@ final class LocationController extends RecursiveController
                 $this->trash($ids);
                 exit;
             elseif ($_GET['status'] === 'draft'):
-                $this->draft($ids, ['parent_id' => null]);
+                $this->draft(
+                    ids: $ids,
+                    datas: ['parent_id' => null]
+                );
                 exit;
             else:
-                $this->edit_status($ids, $_GET['status']);
+                $this->edit_status(
+                    ids: $ids,
+                    status: $_GET['status']
+                );
                 exit;
             endif;
         endif;
@@ -163,11 +186,21 @@ final class LocationController extends RecursiveController
 
         $table = $this->table;
 
-        $form_post = $repository->find_location('id', $id);
-        $list = $repository->list_locations();
+        $form_post = $repository->find(
+            columns: ['coordinates'],
+            field: 'id',
+            value: $id
+        );
+        $list = $repository->form_list();
+
+        $show_link = $this->router->get_alto_router()->generate($table);
+
         $errors = [];
+
         if (!empty($_POST)):
             $_POST['slug'] = isset($_POST['title']) ? Text::slugify($_POST['title']) : null;
+            $_POST['parent_id'] = $_POST['parent_id'] ?? null;
+            $_POST['children_ids'] = $_POST['children_ids'] ?? [];
 
             $old_children_ids = $form_post->get_children_ids();
 
@@ -178,7 +211,11 @@ final class LocationController extends RecursiveController
                     $fields_to_hydrate[] = $key;
                 endif;
             endforeach;
-            $repository->hydrate($form_post, array_merge($_POST, ['id' => $id]), $fields_to_hydrate);
+            $repository->hydrate(
+                entity: $form_post,
+                datas: array_merge($_POST, ['id' => $id]),
+                keys: $fields_to_hydrate
+            );
             $id = $form_post->get_id();
 
             $validator = new LocationValidator($_POST, [], $repository, $id);
@@ -192,25 +229,26 @@ final class LocationController extends RecursiveController
                     endif;
                 endforeach;
                 $repository->update_recursives(
-                    $ids,
-                    $datas_to_set,
-                    $_POST['children_ids'] ?? null
+                    ids: $ids,
+                    datas: $datas_to_set,
+                    children_ids: $_POST['children_ids'] ?? null
                 );
 
                 /**
                  * Remove children
                  */
                 $children_to_remove = [];
-                foreach ($old_children_ids as $old_child_id):
-                    if (!in_array($old_child_id, $form_post->get_children_ids())):
-                        $children_to_remove[] = $old_child_id;
-                    endif;
-                endforeach;
+                if ($old_children_ids):
+                    foreach ($old_children_ids as $old_child_id):
+                        if (!in_array($old_child_id, $form_post->get_children_ids())):
+                            $children_to_remove[] = $old_child_id;
+                        endif;
+                    endforeach;
+                endif;
                 if (!empty($children_to_remove)):
                     $repository->update_recursives(
-                        $children_to_remove,
-                        ['parent_id' => null],
-                        null
+                        ids: $children_to_remove,
+                        datas: ['parent_id' => null],
                     );
                 endif;
 
@@ -227,9 +265,9 @@ final class LocationController extends RecursiveController
         endif;
 
         return $this->render(
-            "admin/$table/edit",
-            array_merge(
-                compact('title', 'form_post', 'list', 'errors', 'status_count', 'status', 'table'),
+            view: "admin/$table/edit",
+            data: array_merge(
+                compact('title', 'form_post', 'list', 'errors', 'status_count', 'status', 'table', 'show_link'),
                 ['labels' => $this->labels],
                 $this->index_part($status)
             )

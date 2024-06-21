@@ -5,7 +5,7 @@ use App\HTML\Form;
 $HTML = new AlbumHTML($router, $table, $labels);
 
 echo $HTML->alerts($errors);
-echo $HTML->head($title);
+echo $HTML->head($title, $show_link);
 ?>
 
 <div class="row g-4 my-4">

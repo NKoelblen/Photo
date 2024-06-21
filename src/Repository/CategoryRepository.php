@@ -2,16 +2,24 @@
 namespace App\Repository;
 
 use App\Entity\CategoryEntity;
-use App\Repository\Exception\NotFoundException;
-use PDO;
 
 final class CategoryRepository extends RecursiveRepository
 {
-    protected ?string $table = 'category';
+    protected ?string $table = '';
     protected ?string $entity = CategoryEntity::class;
+    protected ?string $allowed = null;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->table = $this->category_table;
+        $this->allowed = str_replace('c.', 't.', $this->category_allowed);
+    }
+
+    /********** ADMIN ***********/
 
     /**
-     * used for edit, bulk_edit, trash, bulk trash, restore & bulk restore recursive
+     * used for edit, bulk_edit, trash, bulk trash, restore & bulk restore
      */
     public function update_categories(array $ids, array $datas, ?array $children_ids = null, string $message = null): array
     {
@@ -25,30 +33,31 @@ final class CategoryRepository extends RecursiveRepository
                 $key = "id$i";
                 $in[] = ":$key";
                 $params[$key] = $child_id;
+                $i++;
             endforeach;
             $in = implode(', ', $in);
 
-            $query = $this->pdo->prepare(
-                "WITH RECURSIVE descendants AS (
+            $descendants_ids = $this->fetch_column(
+                sql_query:
+                "WITH RECURSIVE tree AS (
                      SELECT id
                      FROM nk_$this->table
                      WHERE id IN ($in)
+
                      UNION ALL
-                     SELECT $this->table.id
-                     FROM nk_$this->table $this->table
-                     JOIN descendants ON $this->table.parent_id = descendants.id
+
+                     SELECT t.id
+                     FROM nk_$this->table t
+                     JOIN tree ON t.parent_id = tree.id
                  )
-                 SELECT * FROM descendants"
+                 SELECT * FROM tree",
+
+                params: $params
             );
-            $query->execute($params);
-            $descendants_ids = $query->fetchAll(PDO::FETCH_COLUMN);
-            $ids_list = implode(', ', $children_ids);
-            if ($descendants_ids === false):
-                throw new NotFoundException($this->table, $ids_list);
-            endif;
 
             $ids_list = htmlentities(implode(', ', $descendants_ids));
-            $this->update_posts($descendants_ids, ['private' => 1], "Impossible de modifier la visibilité des catégories $ids_list");
+
+            $this->update($descendants_ids, ['private' => 1], "Impossible de modifier la visibilité des catégories $ids_list");
 
             return $descendants_ids;
         endif;
@@ -56,197 +65,14 @@ final class CategoryRepository extends RecursiveRepository
         return [];
     }
 
-    /**
-     * used for edit category
-     */
-    public function find_category(string $field, mixed $value): CategoryEntity
-    {
-        $field = htmlentities($field);
-        $query = $this->pdo->prepare(
-            "SELECT
-                 $this->table.id,
-                 $this->table.title,
-                 $this->table.status,
-                 $this->table.private,
-                 JSON_OBJECT('id', $this->table.parent_id) AS parent,
-                 IF(
-                     COUNT(children.id) = 0,
-                     NULL,
-                     JSON_ARRAYAGG(JSON_OBJECT('id', children.id))
-                 ) AS children
-             FROM nk_$this->table $this->table
-             LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
-             WHERE $this->table.status != 'trashed'
-             AND $this->table.$field = :value
-             GROUP BY $this->table.id"
-        );
-        $query->execute(compact('value'));
-        $query->setFetchMode(PDO::FETCH_CLASS, $this->entity);
-        $result = $query->fetch();
-        if ($result === false):
-            throw new NotFoundException($this->table, $value);
-        endif;
-        return $result;
-    }
 
     /**
-     * SAME AS FIND_LOCATION
-     * 
-     * used for trash & bulk_trash categories
+     * used for new & edit
      */
-    public function find_categories(array $ids): array
+    public function form_list(): array
     {
-        $in = [];
-        $ids_params = [];
-        foreach ($ids as $id):
-            $key = ":id" . $id;
-            $in[] = $key;
-            $ids_params[$key] = $id;
-        endforeach;
-        $in = implode(', ', $in);
-        $query = $this->pdo->prepare(
-            "SELECT
-                 $this->table.id,
-                 $this->table.parent_id,
-                 IF(
-                     COUNT(children.id) = 0,
-                     NULL,
-                     JSON_ARRAYAGG(children.id)
-                 ) AS children_ids
-             FROM nk_$this->table $this->table
-             JOIN nk_$this->table children ON $this->table.id = children.parent_id
-             WHERE $this->table.id IN ($in)
-             GROUP BY $this->table.id"
-        );
-        $query->execute($ids_params);
-        $result = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
-        if ($result === false):
-            $ids_list = implode(', ', $ids);
-            throw new NotFoundException($this->table, $ids_list);
-        endif;
-        return $result;
-    }
+        $entities = $this->find_to_list(['private']);
 
-    /**
-     * SAME AS FIND_PAGINATED_LOCATIONS
-     * 
-     * used for admin index of published categories
-     * 
-     * @return array[Pagination, CategoryEntity[]]
-     */
-    public function find_paginated_categories(string $status = 'published', string $order = 'path ASC', int $per_page = 20): array
-    {
-        $order = htmlentities($order);
-        $pagination = new Pagination(
-            "WITH RECURSIVE ascendants AS (
-                 SELECT id, title, slug, private, title AS path, 0 AS level
-                 FROM nk_$this->table
-                 WHERE status = :status
-                 AND parent_id IS NULL
-                 UNION ALL
-                 SELECT
-                     $this->table.id,
-                     $this->table.title,
-                     $this->table.slug,
-                     $this->table.private,
-                     CONCAT(ascendants.path, ' > ', $this->table.title),
-                     ascendants.level + 1
-                 FROM nk_$this->table $this->table
-                 JOIN ascendants ON $this->table.parent_id = ascendants.id
-                 WHERE $this->table.status != 'trashed'
-             )
-             SELECT * FROM ascendants",
-            "SELECT COUNT(id)
-             FROM nk_$this->table
-             WHERE status = :status",
-            compact('status'),
-            $order,
-            $per_page
-        );
-        $entities = $pagination->get_entities($this->entity, $this->table);
-        return [$pagination, $entities];
-    }
-
-    public function find_private_categories_ids(array $ids)
-    {
-        $in = [];
-        $ids_params = [];
-        foreach ($ids as $id):
-            $key = ":id" . $id;
-            $in[] = $key;
-            $ids_params[$key] = $id;
-        endforeach;
-        $in = implode(', ', $in);
-
-        $query = $this->pdo->prepare(
-            "SELECT id
-             FROM nk_$this->table
-             WHERE id IN ($in)
-             AND private = 1"
-        );
-        $query->execute($ids_params);
-        $result = $query->fetchAll(PDO::FETCH_COLUMN);
-        if ($result === false):
-            $ids_list = implode(', ', $ids);
-            throw new NotFoundException($this->table, $ids_list);
-        endif;
-        return $result;
-    }
-
-    /**
-     * SAME AS FIND_PAGINATED_TRASHED_LOCATIONS
-     * 
-     * used for admin index of trashed categories
-     * 
-     * @return array[Pagination, CategoryEntity[]]
-     */
-    public function find_paginated_trashed_categories(string $order = 'title ASC', int $per_page = 20): array
-    {
-        $order = htmlentities($order);
-        $pagination = new Pagination(
-            "SELECT id, title, slug, private
-             FROM nk_$this->table
-             WHERE status = 'trashed'",
-            "SELECT COUNT(id)
-             FROM nk_$this->table
-             WHERE status = 'trashed'",
-            [],
-            $order,
-            $per_page
-        );
-        $entities = $pagination->get_entities($this->entity, $this->table);
-        return [$pagination, $entities];
-    }
-
-    /**
-     * SAME AS LIST_LOCATIONS
-     * 
-     * used for new & edit category
-     */
-    public function list_categories(): array
-    {
-        $query = $this->pdo->prepare(
-            "WITH RECURSIVE ascendants AS (
-                 SELECT id, title, private, parent_id, title AS path, 0 AS level
-                 FROM nk_$this->table
-                 WHERE status = 'published'
-                 AND parent_id IS NULL
-                 UNION ALL
-                 SELECT
-                     $this->table.id,
-                     $this->table.title,
-                     $this->table.private,
-                     $this->table.parent_id,
-                     CONCAT(ascendants.path, ' > ', $this->table.title),
-                     ascendants.level + 1
-                 FROM nk_$this->table $this->table
-                 JOIN ascendants ON $this->table.parent_id = ascendants.id
-                 WHERE $this->table.status = 'published'
-             )
-             SELECT id, title, private, parent_id, level FROM ascendants ORDER BY path"
-        );
-        $query->execute();
-        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
         $list = [];
         foreach ($entities as $entity):
             $key = ['id' => $entity->get_id(), 'private' => $entity->get_private()];
@@ -259,39 +85,73 @@ final class CategoryRepository extends RecursiveRepository
     }
 
     /**
+     * used to update photo private_ids
+     */
+    public function private_ids_list(array $ids)
+    {
+        $in = [];
+        $params = [];
+        $i = 0;
+        foreach ($ids as $id):
+            $key = "id$i";
+            $in[] = ":$key";
+            $params[$key] = $id;
+            $i++;
+        endforeach;
+        $in = implode(', ', $in);
+
+        return $this->fetch_column(
+            sql_query:
+            "SELECT id
+             FROM nk_$this->table
+             WHERE id IN ($in)
+             AND private = 1",
+
+            params: $params
+        );
+    }
+
+    /**
      * used for edit photo
      */
-    public function list_for_edit_photo(): array
+    public function edit_photo_list(): array
     {
-        $query = $this->pdo->prepare(
-            "WITH RECURSIVE ascendants AS (
-                 SELECT id, title, private, JSON_ARRAY(JSON_OBJECT('id', id, 'private', private)) AS ascendants, title AS path, 0 AS level
+        $entities = $this->fetch_entities(
+            "WITH RECURSIVE tree AS (
+                 SELECT
+                     id,
+                     title,
+                     private,
+                     JSON_ARRAY(JSON_OBJECT('id', id, 'private', private)) AS ascendants,
+                     title AS path,
+                     0 AS level
                  FROM nk_$this->table
                  WHERE status = 'published'
                  AND parent_id IS NULL
+
                  UNION ALL
+
                  SELECT
-                     $this->table.id,
-                     $this->table.title,
-                     $this->table.private,
-                     JSON_ARRAY_APPEND(ascendants.ascendants, '$', JSON_OBJECT('id', $this->table.id, 'private', $this->table.private)),
-                     CONCAT(ascendants.path, ' > ', $this->table.title),
-                     ascendants.level + 1
-                 FROM nk_$this->table $this->table
-                 JOIN ascendants ON $this->table.parent_id = ascendants.id
-                 WHERE $this->table.status = 'published'
+                     t.id,
+                     t.title,
+                     t.private,
+                     JSON_ARRAY_APPEND(tree.ascendants, '$', JSON_OBJECT('id', t.id, 'private', t.private)),
+                     CONCAT(tree.path, ' > ', t.title),
+                     tree.level + 1
+                 FROM nk_$this->table t
+                 JOIN tree ON t.parent_id = tree.id
+                 WHERE t.status = 'published'
              )
-             SELECT ascendants.title, MIN(ascendants.private) AS private, MIN(ascendants.ascendants) AS ascendants, MIN(level) AS level, COUNT(children.id) AS children_nb
-             FROM ascendants
-             LEFT JOIN nk_$this->table children ON ascendants.id = children.parent_id
-             GROUP BY ascendants.title
-             ORDER BY MIN(path)"
+             SELECT
+                 t.title,
+                 t.private,
+                 ascendants,
+                 level,
+                 COUNT(children.id) OVER (PARTITION BY t.title) AS children_nb
+             FROM tree t
+             LEFT JOIN nk_$this->table children ON t.id = children.parent_id
+             ORDER BY path"
         );
-        $query->execute();
-        /**
-         * @var CategoryEntity[]
-         */
-        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
         $list = [];
         foreach ($entities as $entity):
             $key = [];
@@ -310,96 +170,31 @@ final class CategoryRepository extends RecursiveRepository
         return $list;
     }
 
-    /**
-     * used for public filters
-     */
-    public function list_allowed(): array
-    {
-        $query = $this->pdo->prepare(
-            "WITH RECURSIVE ascendants AS (
-                 SELECT id, title, title AS path, 0 AS level
-                 FROM nk_$this->table
-                 WHERE status = 'published'
-                 AND (private IS NULL OR private = 0)
-                 AND parent_id IS NULL
-                 UNION ALL
-                 SELECT
-                     $this->table.id,
-                     $this->table.title,
-                     CONCAT(ascendants.path, ' > ', $this->table.title),
-                     ascendants.level + 1
-                 FROM nk_$this->table $this->table
-                 JOIN ascendants ON $this->table.parent_id = ascendants.id
-                 WHERE $this->table.status = 'published'
-                 AND ($this->table.private IS NULL OR $this->table.private = 0)
-             )
-             SELECT ascendants.id, ascendants.title, ascendants.level
-             FROM ascendants
-             LEFT JOIN nk_$this->table children ON ascendants.id = children.parent_id
-             ORDER BY ascendants.path"
-        );
-        $query->execute();
-        /**
-         * @var CategoryEntity[]
-         */
-        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
-        $list = [];
-        foreach ($entities as $entity):
-            $list[$entity->get_id()] = str_repeat('– ', $entity->get_level()) . $entity->get_title();
-        endforeach;
-        return $list;
-    }
+
+    /********** PUBLIC **********/
 
     /**
-     * used in filters
+     * used for show
      */
-    public function list_allowed_categories(): array
-    {
-        $query = $this->pdo->prepare(
-            "WITH RECURSIVE ascendants AS (
-                 SELECT id, title, parent_id, title AS path, 0 AS level
-                 FROM nk_$this->table
-                 WHERE status = 'published'
-                 AND private = 0
-                 AND parent_id IS NULL
-                 UNION ALL
-                 SELECT
-                     $this->table.id,
-                     $this->table.title,
-                     $this->table.parent_id,
-                     CONCAT(ascendants.path, ' > ', $this->table.title),
-                     ascendants.level + 1
-                 FROM nk_$this->table $this->table
-                 JOIN ascendants ON $this->table.parent_id = ascendants.id
-                 WHERE $this->table.status = 'published'
-                 AND $this->table.private = 0
-             )
-             SELECT * FROM ascendants ORDER BY path"
-        );
-        $query->execute();
-        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
-        $list = [];
-        foreach ($entities as $entity):
-            $list[$entity->get_id()] = [
-                'label' => str_repeat('–', $entity->get_level()) . ' ' . $entity->get_title(),
-                'parent_id' => $entity->get_parent_id()
-            ];
-        endforeach;
-        return $list;
-    }
-
-    /**
-     * used for show category
-     */
-    public function find_allowed_category(string $field, mixed $value): CategoryEntity
+    public function find_allowed(string $field, mixed $value): CategoryEntity
     {
         $field = htmlentities($field);
-        $query = $this->pdo->prepare(
+
+        $parent_allowed = str_replace('t.', 'parent.', $this->allowed);
+        $grandparent_allowed = str_replace('t.', 'grandparent.', $this->allowed);
+        $children_allowed = str_replace('t.', 'children.', $this->allowed);
+        $grandchildren_allowed = str_replace('t.', 'grandchildren.', $this->allowed);
+
+        return $this->fetch_entity(
+            sql_query:
             "SELECT DISTINCT
-                 $this->table.id,
-                 $this->table.title,
-                 $this->table.slug,
-                 $this->table.parent_id,
+                 t.id,
+                 t.title,
+                 t.slug,
+                 t.parent_id,
+                 MIN(p.thumbnail) AS thumbnail,
+
+                 -- GET CHILDREN DETAILS --
                  IF(
                      COUNT(children.title) = 0,
                      NULL,
@@ -412,132 +207,182 @@ final class CategoryRepository extends RecursiveRepository
                          )
                      )
                  ) AS children,
-                 (WITH RECURSIVE parent AS (
-                     SELECT parent.parent_id, parent.title, parent.slug
-                     FROM nk_$this->table parent
-                     WHERE parent.status = 'published'
-                     AND parent.private = 0
-                     AND parent.id = $this->table.parent_id
-                     UNION ALL
-                     SELECT
-                         grandparent.parent_id,
-                         grandparent.title,
-                         grandparent.slug
-                     FROM nk_$this->table grandparent
-                     JOIN parent ON grandparent.id = parent.parent_id
-                     WHERE grandparent.status = 'published'
-                     AND grandparent.private = 0
+                 -- END OF CHILDREN DETAILS --
+
+                 -- GET ASCENDANTS DETAILS --
+                 (
+                     WITH RECURSIVE parent AS (
+                         SELECT parent.parent_id, parent.title, parent.slug
+                         FROM nk_$this->table parent
+                         WHERE $parent_allowed
+                         AND parent.id = t.parent_id
+
+                         UNION ALL
+                         
+                         SELECT grandparent.parent_id, grandparent.title, grandparent.slug
+                         FROM nk_$this->table grandparent
+                         JOIN parent ON grandparent.id = parent.parent_id
+                         WHERE $grandparent_allowed
                      )
-                 SELECT
-                     JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'title', title,
-                            'slug', slug
-                        )
-                    )
-                 FROM parent
-                 GROUP BY $this->table.id) AS ascendants,
-                 (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
-                  FROM nk_photo_$this->table photo_$this->table
-                  JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
-                  WHERE photo_$this->table.{$this->table}_id = $this->table.id
-                  AND photo.status = 'published'
-                  AND photo.private_ids IS NULL
-                  ORDER BY RAND()
-                  LIMIT 1) AS thumbnail
-             FROM nk_$this->table $this->table
+                     SELECT DISTINCT JSON_ARRAYAGG(JSON_OBJECT('title', title, 'slug', slug))
+                     FROM parent
+                     GROUP BY t.id) AS ascendants
+                 -- END OF ASCENDANTS DETAILS --
+
+             FROM nk_$this->table t
+             
+             -- JOIN CHILDREN --
              LEFT JOIN (
                  SELECT DISTINCT
-                 children.title,
-                 children.slug,
-                 children.parent_id,
-                 children.status,
-                 MIN(photo.thumbnail) AS thumbnail,
-                 JSON_PRETTY(
-                     CONCAT(
-                         '[',
-                         GROUP_CONCAT(
-                            DISTINCT CONCAT('{\"title\": \"', grandchildren.title, '\", \"slug\": \"', grandchildren.slug, '\"}')
-                            ORDER BY grandchildren.title
-                            SEPARATOR ', '
-                         ),
-                         ']'
-                     )
-                 ) AS children
-                 FROM nk_$this->table children
-                 LEFT JOIN 
-                 (
-                     SELECT photo_$this->table.{$this->table}_id, FIRST_VALUE(JSON_OBJECT('path', photo.path, 'description', photo.description)) OVER (PARTITION BY photo_$this->table.{$this->table}_id ORDER BY RAND()) AS thumbnail
-                     FROM nk_photo_$this->table photo_$this->table
-                     JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
-                     WHERE photo.status = 'published'
-                     AND photo.private_ids IS NULL
-                 ) photo ON photo.{$this->table}_id = children.id
-                 LEFT JOIN nk_$this->table grandchildren ON children.id = grandchildren.parent_id
-                 WHERE children.status = 'published'
-                 AND (grandchildren.status = 'published' OR grandchildren.status IS NULL)
-                 AND (children.private = 0 OR children.private IS NULL)
-                 AND (grandchildren.private = 0 OR grandchildren.private IS NULL)
-                 GROUP BY children.id
-                 ORDER BY children.title
-             ) children ON $this->table.id = children.parent_id
-             WHERE $this->table.status = 'published'
-             AND (children.status = 'published' OR children.status IS NULL)
-             AND ($this->table.private = 0 OR $this->table.private IS NULL)
-             AND $this->table.$field = :value
-             GROUP BY $this->table.id"
-        );
-        $query->execute(compact('value'));
-        $query->setFetchMode(PDO::FETCH_CLASS, $this->entity);
-        $result = $query->fetch();
-        if ($result === false):
-            throw new NotFoundException($this->table, $value);
-        endif;
-        return $result;
-    }
+                     children.title,
+                     children.slug,
+                     children.parent_id,
+                     children.status,
+                     MIN(p.thumbnail) AS thumbnail,
 
+                     -- GRANDCHILDREN DETAILS --
+                     IF(
+                         COUNT(grandchildren.title) = 0,
+                         NULL,
+                         JSON_PRETTY(
+                             CONCAT(
+                                 '[',
+                                 GROUP_CONCAT(
+                                    DISTINCT JSON_OBJECT('title', grandchildren.title, 'slug', grandchildren.slug)
+                                    ORDER BY grandchildren.title
+                                    SEPARATOR ', '
+                                 ),
+                                 ']'
+                             )
+                         )
+                     ) AS children
+                     -- END OF GRANDCHILDREN DETAILS --
+
+                 FROM nk_$this->table children
+
+                 {$this->join_thumbnail_subquery('children.id')}
+
+                 LEFT JOIN nk_$this->table grandchildren ON children.id = grandchildren.parent_id
+
+                 WHERE $children_allowed
+                 AND (($grandchildren_allowed) OR grandchildren.id IS NULL)
+
+                 GROUP BY children.id
+
+                 ORDER BY children.title
+             ) children ON t.id = children.parent_id
+             -- END OF JOIN CHILDREN --
+
+            {$this->join_thumbnail_subquery('t.id')}
+
+             WHERE $this->allowed
+             AND t.$field = :value
+
+             GROUP BY t.id",
+
+            params: compact('value'),
+        );
+    }
     /**
-     * used for public indexes of categories
+     * used for public indexes
      * 
      * @return CategoryEntity[]
      */
-    public function find_allowed_roots_categories(): array
+    public function find_allowed_roots(): array
     {
-        $query = $this->pdo->prepare(
+        $children_allowed = str_replace('t.', 'children.', $this->allowed);
+
+        return $this->fetch_entities(
+            sql_query:
             "SELECT DISTINCT
-                 $this->table.title,
-                 $this->table.slug,
+                 t.title,
+                 t.slug,
+                 MIN(p.thumbnail) AS thumbnail,
+
+                 -- CHILDREN DETAILS --
                  JSON_PRETTY(
                      CONCAT(
                          '[',
-                         GROUP_CONCAT(
+                         GROUP_CONCAT(DISTINCT
                             CONCAT('{\"title\": \"', children.title, '\", \"slug\": \"', children.slug, '\"}')
                             ORDER BY children.title
                             SEPARATOR ', '
                          ),
                          ']'
                      )
-                 ) AS children,
-                 (SELECT JSON_OBJECT('path', photo.path, 'description', photo.description)
-                  FROM nk_photo_$this->table photo_$this->table
-                  JOIN nk_photo photo ON photo_$this->table.photo_id = photo.id
-                  WHERE photo_$this->table.{$this->table}_id = $this->table.id
-                  AND photo.status = 'published'
-                  AND photo.private_ids IS NULL
-                  ORDER BY RAND()
-                  LIMIT 1) AS thumbnail
-             FROM nk_$this->table $this->table
-             LEFT JOIN nk_$this->table children ON $this->table.id = children.parent_id
-             WHERE $this->table.status = 'published'
-             AND (children.status = 'published' OR children.status IS NULL)
-             AND $this->table.private = 0
-             AND (children.private = 0 OR children.private IS NULL)
-             AND $this->table.parent_id IS NULL
-             GROUP BY $this->table.id
-             ORDER BY $this->table.title"
+                 ) AS children
+                --  END OF CHILDREN DETAILS --
+
+             FROM nk_$this->table t
+             LEFT JOIN nk_$this->table children ON t.id = children.parent_id
+             {$this->join_thumbnail_subquery('t.id')}
+             WHERE $this->allowed
+             AND (($children_allowed) OR children.id IS NULL)
+             AND t.parent_id IS NULL
+             GROUP BY t.id
+             ORDER BY t.title",
         );
-        $query->execute();
-        $entities = $query->fetchAll(PDO::FETCH_CLASS, $this->entity);
-        return $entities;
+    }
+
+    /**
+     * used for public filters
+     */
+    public function filter_allowed(array $filters = []): array
+    {
+        $search = [];
+        if (!empty($filters)):
+            if (isset($filters["{$this->album_table}_id"])):
+                $search[] = "p.{$this->album_table}_id = :{$this->album_table}_id";
+            endif;
+            if (isset($filters["{$this->location_table}_id"])):
+                $search[] = "pl.{$this->location_table}_id = :{$this->location_table}_id";
+            endif;
+            if (isset($filters["year"])):
+                $search[] = "YEAR(p.created_at) = :year";
+            endif;
+            if (isset($filters["month"])):
+                $search[] = "MONTH(p.created_at) = :month";
+            endif;
+        endif;
+        $search = !empty($search) ? 'WHERE ' . implode(' AND ', $search) : '';
+
+        $entities = $this->fetch_entities(
+            sql_query:
+            "WITH RECURSIVE tree AS (
+                 SELECT 
+                     id, 
+                     title, 
+                     title AS path, 
+                     0 AS level
+                 FROM nk_$this->table t
+                 WHERE $this->allowed
+                 AND parent_id IS NULL
+
+                 UNION ALL
+
+                 SELECT
+                     t.id,
+                     t.title,
+                     CONCAT(tree.path, ' > ', t.title),
+                     tree.level + 1
+                 FROM nk_$this->table t
+                 JOIN tree ON t.parent_id = tree.id
+                 WHERE $this->allowed
+             )
+             SELECT tree.id, tree.title, level
+             FROM tree
+             JOIN nk_{$this->photo_table}_$this->table pt ON tree.id = pt.{$this->table}_id
+             JOIN nk_$this->photo_table p ON pt.{$this->photo_table}_id = p.id
+             JOIN nk_{$this->photo_table}_$this->location_table pl ON p.id = pl.{$this->photo_table}_id
+             $search
+             ORDER BY tree.path",
+
+            params: $filters
+        );
+        $list = [];
+        foreach ($entities as $entity):
+            $list[$entity->get_id()] = str_repeat('– ', $entity->get_level()) . $entity->get_title();
+        endforeach;
+        return $list;
     }
 }

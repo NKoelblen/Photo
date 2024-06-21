@@ -51,7 +51,6 @@ class PostHTML extends AdminHTML
         ob_start(); ?>
 
         <th scope="col" class="w-100 px-3">Titre</th>
-        <th scope="col" class="text-center px-3">Visibilité</th>
 
         <?php return ob_get_clean();
     }
@@ -69,9 +68,6 @@ class PostHTML extends AdminHTML
                 <?= $post->get_title(); ?>
             </a>
         </td>
-        <td class="text-center px-3">
-            <?= $post->get_private() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?></td>
-
         <?php return ob_get_clean();
     }
 
@@ -90,10 +86,10 @@ class PostHTML extends AdminHTML
                                 <i class="bi bi-file-earmark-medical"></i>
                             </button>
                             <!-- Delete -->
-                            <?php $message = "Voulez-vous vraiment supprimer définitivement ces {$this->labels['plural']} ?"; ?>
                             <button type="submit"
                                 formaction="<?= $this->router->get_alto_router()->generate("admin-$this->controller-delete"); ?>"
-                                class="btn btn-danger d-inline" onclick="return confirm(<?= $message; ?>)">
+                                class="btn btn-danger d-inline"
+                                onclick="return confirm('Voulez-vous vraiment supprimer définitivement ces publications ?')">
                                 <i class="bi bi-file-earmark-x"></i>
                             </button>
                         <?php elseif ((isset($_GET['index-status']) && $_GET['index-status'] === 'draft') || $status === 'draft'): ?>

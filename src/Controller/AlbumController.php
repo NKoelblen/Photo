@@ -1,7 +1,6 @@
 <?php
 namespace App\Controller;
 
-use App\Repository\AlbumRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\LocationRepository;
 use App\Repository\PhotoRepository;
@@ -14,16 +13,20 @@ final class AlbumController extends PostController
     {
         $title = 'Albums';
 
-        [$pagination, $posts] = (new $this->repository)->find_paginated_allowed_albums();
+        [$pagination, $posts] = (new $this->repository)->find_paginated_allowed();
         $table = $this->table;
         $link = $this->router->get_alto_router()->generate($table);
+        $edit_link = $this->router->get_alto_router()->generate("admin-$table");
 
-        return $this->render('album/index', compact('title', 'posts', 'pagination', 'link', 'table'));
+        return $this->render(
+            view: 'album/index',
+            data: compact('title', 'posts', 'pagination', 'link', 'edit_link', 'table')
+        );
     }
     public function show()
     {
         $slug = $this->params['slug'];
-        $post = (new $this->repository)->find_allowed_album('slug', $slug);
+        $post = (new $this->repository)->find_allowed('slug', $slug);
         $title = $post->get_title();
 
         $datas = array_merge(['album_id' => $post->get_id()], $_GET);
@@ -32,14 +35,27 @@ final class AlbumController extends PostController
         endif;
 
         /* Photos */
-        [$pagination, $photos] = (new PhotoRepository())->find_paginated_allowed_photos($datas);
+        [$pagination, $photos] = (new PhotoRepository())->find_paginated_allowed(filters: $datas);
 
         $table = $this->table;
         $link = $this->router->get_alto_router()->generate("$table-show", compact('slug'));
+        $edit_link = $this->router->get_alto_router()->generate("admin-$table-edit", ['id' => $post->get_id()]);
 
-        $filter_locations = (new LocationRepository())->list_allowed();
-        $filter_categories = (new CategoryRepository())->list_allowed();
+        $locations_datas = $datas;
+        if (isset($locations_datas['location_id'])):
+            unset($locations_datas['location_id']);
+        endif;
+        $filter_locations = (new LocationRepository())->filter_allowed($locations_datas);
 
-        return $this->render('album/show', compact('title', 'post', 'table', 'photos', 'pagination', 'link', 'filter_locations', 'filter_categories'));
+        $categories_datas = $datas;
+        if (isset($categories_datas['category_id'])):
+            unset($categories_datas['category_id']);
+        endif;
+        $filter_categories = (new CategoryRepository())->filter_allowed($categories_datas);
+
+        return $this->render(
+            view: 'album/show',
+            data: compact('title', 'post', 'table', 'photos', 'pagination', 'link', 'edit_link', 'filter_locations', 'filter_categories')
+        );
     }
 }

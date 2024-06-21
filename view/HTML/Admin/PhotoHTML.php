@@ -11,12 +11,12 @@ class PhotoHTML extends PostHTML
         ob_start(); ?>
 
         <th scope="col" class="px-3 text-center">Aperçu</th>
+        <th scope="col" class="text-center" style="min-width:calc((100% - 291.97px) * 0.1667"></th>
         <th scope="col" class="px-3" style="min-width:calc((100% - 291.97px) * 0.1667">Titre</th>
         <th scope="col" class="px-3" style="min-width:calc((100% - 291.97px) * 0.1667">Date</th>
         <th scope="col" class="px-3" style="min-width:calc((100% - 291.97px) * 0.1667">Emplacement</th>
         <th scope="col" class="px-3" style="min-width:calc((100% - 291.97px) * 0.1667">Catégories</th>
         <th scope="col" class="px-3" style="min-width:calc((100% - 291.97px) * 0.1667">Album</th>
-        <th scope="col" class="text-center px-3" style="min-width:calc((100% - 291.97px) * 0.1667">Visibilité</th>
 
         <?php return ob_get_clean();
     }
@@ -31,6 +31,9 @@ class PhotoHTML extends PostHTML
         <td class="px-3 text-center">
             <img src="<?= str_starts_with($photo->get_path(), 'http') ? $photo->get_path() : $photo->get_path('XS'); ?>"
                 alt="Aperçu" class="img-thumbnail" style="height: 37.6px;">
+        </td>
+        <td class="text-center px-3">
+            <?= $photo->get_private_ids() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?>
         </td>
         <td class="px-3">
             <a href="<?= $this->router->get_alto_router()->generate($this->controller, ['slug' => $photo->get_slug()]) ?>">
@@ -73,8 +76,6 @@ class PhotoHTML extends PostHTML
                 </a>
             <?php endif; ?>
         </td>
-        <td class="text-center px-3">
-            <?= $photo->get_private_ids() ? '<i class="bi bi-lock-fill" style="color: #dc3545"></i>' : ''; ?></td>
 
         <?php return ob_get_clean();
     }

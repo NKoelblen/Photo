@@ -9,6 +9,9 @@ class PageController extends AdminController
     public function dashboard()
     {
         $title = 'Bienvenue sur votre tableau de bord !';
-        return $this->render('admin/page/dashboard', compact('title'));
+        return $this->render(
+            view: 'admin/page/dashboard',
+            data: compact('title')
+        );
     }
 }
