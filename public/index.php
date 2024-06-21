@@ -1,11 +1,5 @@
 <?php
-use App\Router\AlbumRouter;
 use App\Router\AppRouter;
-use App\Router\CategoryRouter;
-use App\Router\LocationRouter;
-use App\Router\PageRouter;
-use App\Router\PhotoRouter;
-use App\Router\UserRouter;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
 

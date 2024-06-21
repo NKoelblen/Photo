@@ -43,13 +43,36 @@ endif; ?>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/' ? 'active' : ''; ?>"
-                                aria-current="page" href="<?= $router->get_alto_router()->generate('home') ?>">
-                                <i class="bi bi-house"></i>
-                            </a>
-                        </li>
-                        <?php $controllers = [
+                        <?php if (!isset($_SESSION['auth'])): ?>
+                            <li class="nav-item">
+                                <a class="nav-link <?= $_SERVER['REQUEST_URI'] === '/' ? 'active' : ''; ?>"
+                                    aria-current="page" href="<?= $router->get_alto_router()->generate('home') ?>">
+                                    <i class="bi bi-house"></i>
+                                </a>
+                            </li>
+                            <?php
+                        else: ?>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                    <i class="bi bi-house"></i>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="<?= $router->get_alto_router()->generate('home') ?>">
+                                            Accueil
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                            href="<?= $router->get_alto_router()->generate('admin') ?>">
+                                            Tableau de bord
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        <?php endif;
+                        $controllers = [
                             'album' => 'Albums',
                             'location' => 'Emplacements',
                             'category' => 'Catégories',

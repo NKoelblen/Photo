@@ -1,11 +1,13 @@
 <?php
 namespace App\Controller\Admin;
 
+use App\Auth\IsGranted;
 use App\Entity\LocationEntity;
 use App\Helpers\Text;
 use App\Repository\LocationRepository;
 use App\Validator\LocationValidator;
 
+#[IsGranted('admin')]
 final class LocationController extends RecursiveController
 {
     protected string $table = 'location';

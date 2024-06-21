@@ -2,8 +2,9 @@
 
 namespace App\Controller\Admin;
 
-use App\Router\AbstractRouter;
+use App\Auth\IsGranted;
 
+#[IsGranted()]
 class PageController extends AdminController
 {
     public function dashboard()

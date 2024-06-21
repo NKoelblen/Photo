@@ -2,6 +2,7 @@
 namespace App\Controller\Admin;
 
 use App\Attachment\PhotoAttachment;
+use App\Auth\IsGranted;
 use App\Entity\PhotoEntity;
 use App\Helpers\ArrayHelper;
 use App\Helpers\Text;
@@ -11,6 +12,7 @@ use App\Repository\LocationRepository;
 use App\Repository\PhotoRepository;
 use App\Validator\PhotoValidator;
 
+#[IsGranted('admin')]
 final class PhotoController extends PostController
 {
     protected string $table = 'photo';

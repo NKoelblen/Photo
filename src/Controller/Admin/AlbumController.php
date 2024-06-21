@@ -1,11 +1,13 @@
 <?php
 namespace App\Controller\Admin;
 
+use App\Auth\IsGranted;
 use App\Entity\AlbumEntity;
 use App\Helpers\Text;
 use App\Repository\AlbumRepository;
 use App\Validator\AlbumValidator;
 
+#[IsGranted('admin')]
 final class AlbumController extends PostController
 {
     protected string $table = 'album';

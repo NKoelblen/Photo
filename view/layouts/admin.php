@@ -63,8 +63,11 @@
                                 <i class="bi bi-house"></i>
                             </a>
                             <ul class="dropdown-menu">
-                                <a class="dropdown-item" aria-current="page"
-                                    href="<?= $router->get_alto_router()->generate('home') ?>">Accueil</a>
+                                <li>
+                                    <a class="dropdown-item" href="<?= $router->get_alto_router()->generate('home') ?>">
+                                        Accueil
+                                    </a>
+                                </li>
                                 <li>
                                     <a class="dropdown-item"
                                         href="<?= $router->get_alto_router()->generate('admin') ?>">
@@ -76,21 +79,21 @@
                         <?php if (session_status() === PHP_SESSION_NONE):
                             session_start();
                         endif;
-                        // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'):
-                        $controllers = [
-                            'photo' => 'Photos',
-                            'category' => 'Catégories',
-                            'location' => 'Emplacements',
-                            'album' => 'Albums',
-                            'user' => 'Utilisateurs'
-                        ];
-                        foreach ($controllers as $controller => $label): ?>
-                            <li class="nav-item">
-                                <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], "/admin/$controller") ? 'active' : ''; ?>"
-                                    href="<?= $router->get_alto_router()->generate("admin-$controller") ?>"><?= $label; ?></a>
-                            </li>
-                        <?php endforeach;
-                        // endif; ?>
+                        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'):
+                            $controllers = [
+                                'photo' => 'Photos',
+                                'category' => 'Catégories',
+                                'location' => 'Emplacements',
+                                'album' => 'Albums',
+                                'user' => 'Utilisateurs'
+                            ];
+                            foreach ($controllers as $controller => $label): ?>
+                                <li class="nav-item">
+                                    <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], "/admin/$controller") ? 'active' : ''; ?>"
+                                        href="<?= $router->get_alto_router()->generate("admin-$controller") ?>"><?= $label; ?></a>
+                                </li>
+                            <?php endforeach;
+                        endif; ?>
                     </ul>
                 </div>
                 <ul class="navbar-nav">
@@ -101,11 +104,8 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a class="dropdown-item
-                                <!-- $_SERVER['REQUEST_URI'] === '/profile' ? 'active' : '' -->
-                                " href="
-                                    <?= $router->get_alto_router()->generate('profile') ?>
-                                    ">
+                                <a class="dropdown-item <?= $_SERVER['REQUEST_URI'] === '/profile' ? 'active' : '' ?>"
+                                    href="<?= $router->get_alto_router()->generate('profile') ?>">
                                     Mon Profil
                                 </a>
                             </li>

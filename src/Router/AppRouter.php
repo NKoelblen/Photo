@@ -1,6 +1,10 @@
 <?php
 namespace App\Router;
 
+use App\Auth\IsGranted;
+use App\Security\ForbidenException;
+use ReflectionClass;
+
 class AppRouter extends AbstractRouter
 {
     public function __construct()
@@ -22,6 +26,12 @@ class AppRouter extends AbstractRouter
                 'route' => '/admin',
                 'target' => $this->admin_namespace . 'PageController#dashboard',
                 'name' => 'admin'
+            ],
+            [
+                'method' => 'GET|POST',
+                'route' => "/profile",
+                'target' => $this->admin_namespace . 'UserController#profile',
+                'name' => 'profile'
             ]
         ];
         $controllers = ['photo', 'location', 'category', 'album', 'user'];
@@ -56,7 +66,7 @@ class AppRouter extends AbstractRouter
                 ];
             endforeach;
         endforeach;
-        $auth_actions = ['login', 'logout', 'profile'];
+        $auth_actions = ['login', 'logout'];
         foreach ($auth_actions as $auth_action):
             $routes[] = [
                 'method' => 'GET|POST',
@@ -78,7 +88,26 @@ class AppRouter extends AbstractRouter
         $target = $match['target'] ?? $this->namespace . 'PageController#e404';
         $params = $match['params'] ?? [];
         [$controller, $action] = explode('#', $target, 2);
-        (new $controller($this, $this->view_path, $params))->$action();
-        return $this;
+        try {
+            $qwerty = new $controller($this, $this->view_path, $params);
+            $reflection = new ReflectionClass($qwerty::class);
+            $granted_attributes = $reflection->getAttributes(IsGranted::class);
+            if (!empty($granted_attributes)):
+                $granted_attributes[0]->newInstance();
+            endif;
+            foreach ($reflection->getMethods() as $method):
+                if ($method->name === $action):
+                    $granted_attributes = $method->getAttributes(IsGranted::class);
+                    if (!empty($granted_attributes)):
+                        $granted_attributes[0]->newInstance();
+                    endif;
+                endif;
+            endforeach;
+            $qwerty->$action();
+            return $this;
+        } catch (ForbidenException $exception) {
+            header("Location: {$this->get_alto_router()->generate('login')}?forbidden=1");
+            exit();
+        }
     }
 }

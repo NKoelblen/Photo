@@ -1,12 +1,14 @@
 <?php
 namespace App\Controller\Admin;
 
+use App\Auth\IsGranted;
 use App\Entity\CategoryEntity;
 use App\Helpers\Text;
 use App\Repository\CategoryRepository;
 use App\Repository\PhotoRepository;
 use App\Validator\CategoryValidator;
 
+#[IsGranted('admin')]
 final class CategoryController extends RecursiveController
 {
     protected string $table = 'category';
