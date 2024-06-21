@@ -169,9 +169,9 @@ final class PhotoEntity extends PostEntity
     public function set_categories_ids(?array $categories_ids): static
     {
         if (is_array($categories_ids)):
-            $this->children_ids = json_encode($categories_ids);
+            $this->categories_ids = json_encode($categories_ids);
         else:
-            $this->children_ids = $categories_ids;
+            $this->categories_ids = $categories_ids;
         endif;
         return $this;
     }

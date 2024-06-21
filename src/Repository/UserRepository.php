@@ -25,13 +25,11 @@ final class UserRepository extends AppRepository
             categories_ids: $categories_ids
         );
 
-        return $this->pdo->lastInsertId();
+        return $new_user;
     }
 
-    public function edit_user(UserEntity $user, array $datas, array $categories_ids): void
+    public function edit_user(int $id, array $datas, array $categories_ids): void
     {
-        $id = $user->get_id();
-
         $this->update(
             ids: [$id],
             datas: $datas
@@ -126,13 +124,13 @@ final class UserRepository extends AppRepository
                  email, 
                  password, 
                  role, 
-                 label AS role_label
+                 label AS role_label,
                  JSON_ARRAYAGG(tc.category_id) AS categories_ids
              FROM nk_$this->table t
              JOIN nk_role r ON t.role = r.id
              LEFT JOIN nk_{$this->table}_category tc ON t.id = tc.{$this->table}_id
-             WHERE id = :id
-             GROUP BY id",
+             WHERE t.id = :id
+             GROUP BY t.id",
 
             params: compact('id')
         );
@@ -141,12 +139,17 @@ final class UserRepository extends AppRepository
     /**
      * @return UserEntity[]
      */
-    public function find_all(): array
+    public function find_paginated(): array
     {
-        return $this->fetch_entities(
-            "SELECT id, login, email, label AS role_label
+        return $this->fetch_paginated_entities(
+            query:
+            "SELECT t.id, login, email, label AS role_label
              FROM nk_$this->table t
-             JOIN nk_role r ON t.role = r.id"
+             JOIN nk_role r ON t.role = r.id",
+            query_count:
+            "SELECT COUNT(id)
+             FROM nk_$this->table",
+            order: 'login'
         );
     }
 }

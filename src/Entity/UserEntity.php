@@ -9,7 +9,7 @@ final class UserEntity extends AppEntity
     private string $role = 'subscriber';
     private string $role_label = '';
     private string $permissions = '';
-    private array $categories_ids = [];
+    private ?string $categories_ids = null;
 
     public function get_login(): string
     {
@@ -67,13 +67,20 @@ final class UserEntity extends AppEntity
         return $this;
     }
 
-    public function get_categories_ids(): array
+    public function get_categories_ids(): ?array
     {
-        return $this->categories_ids;
+        if ($this->categories_ids === null):
+            return $this->categories_ids;
+        endif;
+        return json_decode($this->categories_ids, true);
     }
-    public function set_categories_ids(array $categories_ids): static
+    public function set_categories_ids(?array $categories_ids): static
     {
-        $this->categories_ids = $categories_ids;
+        if (is_array($categories_ids)):
+            $this->categories_ids = json_encode($categories_ids);
+        else:
+            $this->categories_ids = $categories_ids;
+        endif;
         return $this;
     }
 }

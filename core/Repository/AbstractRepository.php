@@ -172,13 +172,13 @@ class AbstractRepository
      * @param string $field Table column
      * @param mixed $value Field value to check
      */
-    public function exist(string $field, mixed $value, mixed $exception = null): bool
+    public function exist(string $field, mixed $value, mixed $exception_id = null): bool
     {
         $sql = "SELECT COUNT($field) FROM nk_$this->table WHERE $field = :value";
         $params = compact('value');
-        if ($exception !== null):
-            $sql .= " AND $field != :exception";
-            $params['exception'] = $exception;
+        if ($exception_id !== null):
+            $sql .= " AND id != :exception";
+            $params['exception'] = $exception_id;
         endif;
         $query = $this->pdo->prepare($sql);
         $query->execute($params);

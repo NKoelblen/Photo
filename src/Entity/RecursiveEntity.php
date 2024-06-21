@@ -18,7 +18,9 @@ abstract class RecursiveEntity extends CollectionEntity
 
     public function __construct()
     {
-        $this->path = $this->title;
+        if (!$this->path):
+            $this->path = $this->title;
+        endif;
     }
 
     public function get_parent_id(): ?int

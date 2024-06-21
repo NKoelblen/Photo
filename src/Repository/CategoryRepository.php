@@ -170,6 +170,45 @@ final class CategoryRepository extends RecursiveRepository
         return $list;
     }
 
+    /**
+     * used for edit & new user
+     */
+
+    public function private_list(): array
+    {
+        $entities = $this->fetch_entities(
+            "WITH RECURSIVE tree AS (
+                 SELECT
+                     id,
+                     private,
+                     title AS path
+                 FROM nk_$this->table
+                 WHERE status = 'published'
+                 AND parent_id IS NULL
+
+                 UNION ALL
+
+                 SELECT
+                     t.id,
+                     t.private,
+                     CONCAT(tree.path, ' > ', t.title)
+                 FROM nk_$this->table t
+                 JOIN tree ON t.parent_id = tree.id
+                 WHERE t.status = 'published'
+             )
+             SELECT
+                 id,
+                 path
+             FROM tree
+             WHERE private = 1
+             ORDER BY path"
+        );
+        $list = [];
+        foreach ($entities as $entity):
+            $list[$entity->get_id()] = $entity->get_path();
+        endforeach;
+        return $list;
+    }
 
     /********** PUBLIC **********/
 
