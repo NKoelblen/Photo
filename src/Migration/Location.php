@@ -8,9 +8,8 @@ final class Location extends AbstractMigration
                                           `title` varchar(255) NOT NULL,
                                           `slug` varchar(255) NOT NULL UNIQUE,
                                           `status` varchar(255) NOT NULL DEFAULT 'published',
-                                          `private_ids` json,
-                                          `coordinates` varchar(255) NOT NULL,
                                           `parent_id` int DEFAULT NULL,
+                                          `coordinates` varchar(255) NOT NULL,
                                           PRIMARY KEY (`id`),
                                           CONSTRAINT `fk_l_parent` FOREIGN KEY (`parent_id`) REFERENCES `nk_location` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
                                       )";

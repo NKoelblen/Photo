@@ -7,8 +7,7 @@ final class Album extends AbstractMigration
                                           `id` int NOT NULL AUTO_INCREMENT,
                                           `title` varchar(255) NOT NULL,
                                           `slug` varchar(255) NOT NULL UNIQUE,
-                                          `status` varchar(255) NOT NULL DEFAULT 'published',
-                                          `private_ids` json,
+                                          `status` varchar(255) NOT NULL DEFAULT 'published'
                                           PRIMARY KEY (`id`)
                                       )";
 }
