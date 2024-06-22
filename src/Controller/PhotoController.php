@@ -24,8 +24,17 @@ final class PhotoController extends AppController
         $link = $this->router->get_alto_router()->generate($table);
         $edit_link = $this->router->get_alto_router()->generate("admin-$table");
 
-        $filter_locations = (new LocationRepository())->filter_allowed(filters: $datas);
-        $filter_categories = (new CategoryRepository())->filter_allowed(filters: $datas);
+        $locations_datas = $datas;
+        if (isset($locations_datas['location_id'])):
+            unset($locations_datas['location_id']);
+        endif;
+        $filter_locations = (new LocationRepository())->filter_allowed($locations_datas);
+
+        $categories_datas = $datas;
+        if (isset($categories_datas['category_id'])):
+            unset($categories_datas['category_id']);
+        endif;
+        $filter_categories = (new CategoryRepository())->filter_allowed($categories_datas);
 
         return $this->render(
             view: 'photo/index',

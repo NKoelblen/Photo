@@ -25,15 +25,15 @@ abstract class PostRepository extends AppRepository
             $allowed_ids = json_encode($_SESSION['allowed']);
             $this->category_allowed .= " AND (c.private = 0 OR c.id MEMBER OF ('$allowed_ids'))";
             $this->photo_allowed .= " AND (
-                                          p.private_ids IS NULL 
-                                          OR json_length(p.private_ids) = 0 
-                                          OR (
-                                              SELECT COUNT(t.id)
-                                              FROM nk_category t
-                                              WHERE CAST(t.id AS CHAR) MEMBER OF (p.private_ids)
-                                              AND t.id MEMBER OF ('$allowed_ids')
-                                          ) = json_length(p.private_ids)
-                                      )";
+                                              p.private_ids IS NULL 
+                                              OR json_length(p.private_ids) = 0 
+                                              OR (
+                                                  SELECT COUNT(t.id)
+                                                  FROM nk_category t
+                                                  WHERE CAST(t.id AS CHAR) MEMBER OF (p.private_ids)
+                                                  AND t.id MEMBER OF ('$allowed_ids')
+                                              ) = json_length(p.private_ids)
+                                          )";
         endif;
     }
 
