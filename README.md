@@ -202,49 +202,49 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 ### Tableau de bord
 
-[] Afficher une grille des catégories, des albums et des emplacements privés autorisés
+-   [ ] Afficher une grille des catégories, des albums et des emplacements privés autorisés
 
 ### Collections de photos
 
-[] Attacher les photos directement depuis le formulaire de modification d'une collection
+-   [ ] Attacher les photos directement depuis le formulaire de modification d'une collection
 
 ### Utilisateur
 
-[] Forcer l'utilisation d'un mot de passe fort
-[] Permettre aux abonnés de demander la suppression de leur profil
-[] Forcer l'existence d'au moins un administrateur
-[] Restreindre la possibilité à l'administrateur de supprimer son propre profil
+-   [ ] Forcer l'utilisation d'un mot de passe fort
+-   [ ] Permettre aux abonnés de demander la suppression de leur profil
+-   [ ] Forcer l'existence d'au moins un administrateur
+-   [ ] Restreindre la possibilité à l'administrateur de supprimer son propre profil
 
 ### Front office
 
-[] Remplacer les grilles de publications hiérarchisées par des carousels
+-   [ ] Remplacer les grilles de publications hiérarchisées par des carousels
 
 #### Photos
 
-[] Justifier les grilles de photos
-[] Remplacer la pagination des photos par un bouton 'charger plus' en ajax
+-   [ ] Justifier les grilles de photos
+-   [ ] Remplacer la pagination des photos par un bouton 'charger plus' en ajax
 
 #### Filtres
 
-[] Filtrer les albums
-[] Filtres ajax
-[] Permettre la selection de plusieurs catégories lors du filtrage
-[] Restreindre le choix des années et des mois
+-   [ ] Filtrer les albums
+-   [ ] Filtres ajax
+-   [ ] Permettre la selection de plusieurs catégories lors du filtrage
+-   [ ] Restreindre le choix des années et des mois
 
 #### Collections
 
-[] Thumbnails de même ratio sur les cartes et thumbnails en arrière plan du titre
+-   [ ] Thumbnails de même ratio sur les cartes et thumbnails en arrière plan du titre
 
 ### Sécurité
 
-[] Sécuriser l'accès au dossier d'images
+-   [ ] Sécuriser l'accès au dossier d'images
 
 ### Performance
 
-[] Mise en cache
-[] Chargement des photos diféré
-[] Minification
+-   [ ] Mise en cache
+-   [ ] Chargement des photos diféré
+-   [ ] Minification
 
 ### Référencement
 
-[] Référencement
+-   [ ] Référencement
