@@ -51,12 +51,12 @@ class PhotoHTML extends PostHTML
 
                                             <h2 class="text-light px-2">
                                                 <?= $photo->get_title(); ?>
-                                                <?php // if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                                                <a href="<?= $this->router->get_alto_router()->generate("admin-$this->controller-edit", ['id' => $photo->get_id()]); ?>"
-                                                    class="btn btn-primary">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <?php // endif; ?>
+                                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                                    <a href="<?= $this->router->get_alto_router()->generate("admin-$this->controller-edit", ['id' => $photo->get_id()]); ?>"
+                                                        class="btn btn-primary">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                <?php endif; ?>
                                             </h2>
 
                                             <div class="ps-2" style="--bs-breadcrumb-divider: '>';">
