@@ -18,12 +18,12 @@ final class UserController extends AppController
             $form_post->set_login($_POST['login']);
             $errors['password'] = "L'identifiant ou le mot de passe est invalide.";
             if (!empty($_POST['login']) && !empty($_POST['password'])):
-                $table = new UserRepository();
+                $repository = new UserRepository();
                 try {
                     /**
                      * @var UserEntity
                      */
-                    $user = $table->find_to_login($_POST['login']);
+                    $user = $repository->find_to_login($_POST['login']);
                     if (password_verify($_POST['password'], $user->get_password()) === true):
                         if (session_status() === PHP_SESSION_NONE):
                             session_start();

@@ -95,9 +95,12 @@ final class UserRepository extends AppRepository
                  login, 
                  email, 
                  password, 
-                 role
+                 role,
+                 JSON_ARRAYAGG(tc.category_id) AS categories_ids
              FROM nk_$this->table t
-             WHERE login = :login",
+             LEFT JOIN nk_{$this->table}_category tc ON t.id = tc.{$this->table}_id 
+             WHERE login = :login
+             GROUP BY id",
 
             params: compact('login')
         );
@@ -143,9 +146,21 @@ final class UserRepository extends AppRepository
     {
         return $this->fetch_paginated_entities(
             query:
-            "SELECT t.id, login, email, label AS role_label
+            "SELECT
+                 t.id, 
+                 login, 
+                 email, 
+                 label AS role_label,
+                 IF(
+                     COUNT(c.id) = 0,
+                     NULL, 
+                     JSON_ARRAYAGG(JSON_OBJECT('id', c.id, 'title', c.title)) 
+                 ) AS categories
              FROM nk_$this->table t
-             JOIN nk_role r ON t.role = r.id",
+             JOIN nk_role r ON t.role = r.id
+             LEFT JOIN nk_{$this->table}_category tc ON t.id = tc.{$this->table}_id
+             LEFT JOIN nk_category c ON tc.category_id = c.id
+             GROUP BY t.id",
             query_count:
             "SELECT COUNT(id)
              FROM nk_$this->table",

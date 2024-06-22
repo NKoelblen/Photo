@@ -1,6 +1,8 @@
 <?php
 namespace App\Entity;
 
+use App\Helpers\JsonMapper;
+
 final class UserEntity extends AppEntity
 {
     private string $login = '';
@@ -10,6 +12,7 @@ final class UserEntity extends AppEntity
     private string $role_label = '';
     private string $permissions = '';
     private ?string $categories_ids = null;
+    private ?string $categories = null;
 
     public function get_login(): string
     {
@@ -80,6 +83,26 @@ final class UserEntity extends AppEntity
             $this->categories_ids = json_encode($categories_ids);
         else:
             $this->categories_ids = $categories_ids;
+        endif;
+        return $this;
+    }
+
+    /**
+     * @return ?CategoryEntity[]
+     */
+    public function get_categories(): ?array
+    {
+        if ($this->categories === null):
+            return $this->categories;
+        endif;
+        return JsonMapper::map_array($this->categories, CategoryEntity::class);
+    }
+    public function set_categories(string|array|null $categories): static
+    {
+        if (is_array($categories)):
+            $this->categories = json_encode($categories);
+        else:
+            $this->categories = $categories;
         endif;
         return $this;
     }

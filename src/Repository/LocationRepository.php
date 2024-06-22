@@ -86,7 +86,7 @@ final class LocationRepository extends RecursiveRepository
     /********** PUBLIC ***********/
 
     /**
-     * used for show recursive
+     * used for show
      */
     public function find_allowed(string $field, mixed $value): LocationEntity
     {
@@ -185,7 +185,7 @@ final class LocationRepository extends RecursiveRepository
     }
 
     /**
-     * used for public indexes of recursive
+     * used for public indexes
      * 
      * @return LocationEntity[]
      */
@@ -197,11 +197,22 @@ final class LocationRepository extends RecursiveRepository
                  t.title,
                  t.slug,
                  MIN(p.thumbnail) AS thumbnail,
-                 JSON_ARRAYAGG(children.details) AS children
+                 IF(
+                     COUNT(children.details) = 0,
+                     NULL,
+                     JSON_ARRAYAGG(children.details)
+                 ) AS children
              FROM nk_$this->table t
              {$this->join_thumbnail_subquery('t.id')}
              LEFT JOIN (
-                 SELECT DISTINCT parent_id, t.title, JSON_OBJECT('title', t.title, 'slug', t.slug) AS details
+                 SELECT DISTINCT 
+                     parent_id, 
+                     t.title,
+                     IF(
+                         t.title IS NULL,
+                         NULL, 
+                         JSON_OBJECT('title', t.title, 'slug', t.slug)
+                     ) AS details
                  FROM nk_$this->table t
                  JOIN nk_{$this->photo_table}_$this->table pt ON t.id = pt.{$this->table}_id
                  JOIN nk_$this->photo_table p ON pt.{$this->photo_table}_id = p.id

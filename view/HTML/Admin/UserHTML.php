@@ -19,7 +19,8 @@ class UserHTML extends AdminHTML
 
                     <th scope="col" class="px-3">Identifiant</th>
                     <th scope="col" class="px-3">Email</th>
-                    <th scope="col" class="w-100 px-3">Rôle</th>
+                    <th scope="col" class="px-3">Rôle</th>
+                    <th scope="col" class="px-3 w-100">Permissions</th>
                     <th scope="col" class="px-3">
                         <a href="<?= $this->router->get_alto_router()->generate('admin-user-new'); ?>" class="btn btn-success">
                             <i class="bi bi-file-earmark-plus"></i>
@@ -35,6 +36,21 @@ class UserHTML extends AdminHTML
                         <td class="px-3"><?= $post->get_login(); ?></td>
                         <td class="px-3"><?= $post->get_email(); ?></td>
                         <td class="px-3"><?= $post->get_role_label(); ?></td>
+                        <td class="px-3">
+                            <?php $categories_details = $post->get_categories();
+                            $categories = [];
+                            if ($categories_details):
+                                foreach ($categories_details as $category):
+                                    ob_start(); ?>
+                                    <a
+                                        href="<?= $this->router->get_alto_router()->generate('admin-category-edit', ['id' => $category->get_id()]); ?>">
+                                        <?= $category->get_title(); ?>
+                                    </a>
+                                    <?php $categories[] = ob_get_clean();
+                                endforeach;
+                            endif;
+                            echo implode(' | ', $categories); ?>
+                        </td>
                         <td class="px-3" style="white-space: nowrap;">
                             <?php $route = $_SESSION['auth'] === $post->get_id() ? 'profile' : 'admin-user-edit' ?>
                             <a href="<?= $this->router->get_alto_router()->generate($route, ['id' => $post->get_id()]) ?>"

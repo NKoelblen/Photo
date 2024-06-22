@@ -273,7 +273,7 @@ final class PhotoRepository extends PostRepository
                  t.created_at,
                  t.private_ids,
                  IF(
-                     COUNT(a.id) OVER (PARTITION BY t.id) = 0,
+                     a.id IS NULL,
                      NULL,
                      JSON_OBJECT('title', a.title, 'slug', a.slug)
                  ) AS album,
@@ -398,7 +398,7 @@ final class PhotoRepository extends PostRepository
                  description, 
                  created_at,
                  IF(
-                     COUNT(a.id) OVER (PARTITION BY t.id) = 0,
+                     a.id IS NULL,
                      NULL,
                      JSON_OBJECT('title', a.title, 'slug', a.slug)
                  ) AS album,

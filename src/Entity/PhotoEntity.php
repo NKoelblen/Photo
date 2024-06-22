@@ -175,6 +175,7 @@ final class PhotoEntity extends PostEntity
         endif;
         return $this;
     }
+
     /**
      * @return ?CategoryEntity[]
      */
@@ -185,7 +186,6 @@ final class PhotoEntity extends PostEntity
         endif;
         return JsonMapper::map_array($this->categories, CategoryEntity::class);
     }
-
     public function set_categories(string|array|null $categories): static
     {
         if (is_array($categories)):

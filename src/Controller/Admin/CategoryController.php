@@ -307,7 +307,7 @@ final class CategoryController extends RecursiveController
                 endif;
 
                 /**
-                 * Update photos, albums & locations
+                 * Update photos
                  */
                 if (isset($datas_to_set['private'])):
 

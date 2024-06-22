@@ -8,11 +8,34 @@ abstract class PostRepository extends AppRepository
     protected string $album_table = 'album';
     protected string $category_table = 'category';
     protected string $location_table = 'location';
-    protected string $category_allowed = "c.status = 'published'
-                                            AND c.private = 0";
+    protected string $category_allowed = "c.status = 'published'";
     protected string $photo_table = 'photo';
-    protected string $photo_allowed = "p.status = 'published'
-                                       AND (p.private_ids IS NULL OR json_length(p.private_ids) = 0)";
+    protected string $photo_allowed = "p.status = 'published'";
+
+    public function __construct()
+    {
+        parent::__construct();
+        if (session_status() === PHP_SESSION_NONE):
+            session_start();
+        endif;
+        if (!isset($_SESSION['role'])):
+            $this->category_allowed .= " AND c.private = 0";
+            $this->photo_allowed .= " AND (p.private_ids IS NULL OR json_length(p.private_ids) = 0)";
+        elseif (isset($_SESSION['allowed']) && $_SESSION['role'] !== 'admin'):
+            $allowed_ids = json_encode($_SESSION['allowed']);
+            $this->category_allowed .= " AND (c.private = 0 OR c.id MEMBER OF ('$allowed_ids'))";
+            $this->photo_allowed .= " AND (
+                                          p.private_ids IS NULL 
+                                          OR json_length(p.private_ids) = 0 
+                                          OR (
+                                              SELECT COUNT(t.id)
+                                              FROM nk_category t
+                                              WHERE CAST(t.id AS CHAR) MEMBER OF (p.private_ids)
+                                              AND t.id MEMBER OF ('$allowed_ids')
+                                          ) = json_length(p.private_ids)
+                                      )";
+        endif;
+    }
 
     /********** ADMIN **********/
 
