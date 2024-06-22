@@ -205,33 +205,33 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 ### Back office
 
-### Tableau de bord
+#### Tableau de bord
 
 -   [ ] Afficher une grille des catégories, des albums et des emplacements privés autorisés
 
-### Index des publications et des utilisateurs
+#### Index des publications et des utilisateurs
 
 -   [ ] Trier
--   [ ] Choix du nombre de lignes à afficher (entre 10 et 100)
+-   [ ] Choisir le nombre de lignes à afficher (entre 10 et 100)
+-   [ ] Rechercher
 
-### Collections de photos
+#### Collections de photos
 
--   [ ] Trier les albums par titre et non par id
 -   [ ] Attacher les photos directement depuis le formulaire de modification d'une collection
 -   [ ] Afficher le nombres de photos attachées dans l'index
 
-### Utilisateur
+#### Utilisateur
 
 -   [ ] Forcer l'utilisation d'un mot de passe fort
 -   [ ] Permettre aux abonnés de demander la suppression de leur profil
 -   [ ] Forcer l'existence d'au moins un administrateur
 -   [ ] Restreindre la possibilité à l'administrateur de supprimer son propre profil
 -   [ ] Ajouter automatiquement les catégories privées parentes aux catégories autorisées lors de l'autorisation d'une catégorie privée
--   [ ] Autorisations en masse
+-   [ ] Ajouter des autorisations en masse
 
 ### Front office
 
--   [ ] Remplacer les grilles de publications hiérarchisées par des carousels
+-   [] Refondre la page d'accueil
 
 #### Photos
 
@@ -241,17 +241,18 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 #### Filtres
 
 -   [ ] Filtrer les albums
--   [ ] Filtres ajax
+-   [ ] Filtrer en ajax
 -   [ ] Permettre la selection de plusieurs catégories lors du filtrage
 -   [ ] Restreindre le choix des années et des mois
 
 #### Collections
 
--   [ ] Thumbnails de même ratio sur les cartes et thumbnails en arrière plan du titre
+-   [ ] Remplacer les grilles de publications hiérarchisées par des carousels
+-   [ ] Afficher des thumbnails de même ratio sur les cartes, en arrière plan du titre
 
 #### Utilisateurs
 
--   [ ] Améliorer le formulaire de connection
+-   [ ] Refondre le formulaire de connection
 
 ### Sécurité
 
@@ -259,10 +260,10 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 ### Performance
 
--   [ ] Mise en cache
--   [ ] Chargement des photos diféré
--   [ ] Minification
+-   [ ] Mettre en cache
+-   [ ] Charger les photos en diféré
+-   [ ] Minifier les assets
 
 ### Référencement
 
--   [ ] Référencement ?
+-   [ ] Résérencer ?
