@@ -48,7 +48,7 @@ final class PhotoController extends PostController
         endif;
 
         $datas = $_GET;
-        $params = ['page', 'index-status', 'edit', 'published', 'draft', 'trashed'];
+        $params = ['page', 'index-status', 'edit', 'published', 'draft', 'trashed', 'delete'];
         foreach ($params as $param):
             if (isset($datas[$param])):
                 unset($datas[$param]);

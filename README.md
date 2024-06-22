@@ -63,6 +63,7 @@ Ce projet est un modèle de blog photo amateur.
 ### Création des photos
 
 Il est possible d'importer plusieurs photos en même temps dans un dossier public.
+
 Lors de la création de photo :
 
 1. les photos d'origines sont importées
@@ -76,7 +77,9 @@ Lors de la création de photo :
 ### Lieux de prise de vue des photos
 
 Un type de publications 'location' (Emplacement) permet de renseigner le lieu de prise de vue des photos.
+
 Les emplacements sont hiérarchisés (Par exemple : Continent > Pays > Région > Département > Ville).
+
 Les informations concernant les emplacements contiennent éventuellement des coordonnées GPS.
 
 ### Organisation des photos
@@ -117,6 +120,7 @@ Les informations suivantes peuvent être modifiées en masse :
 ### Modification des collections (autres publications)
 
 Les collections peuvent également être publiées ou enregistrées comme brouillons.
+
 Cet état peut également être modifié individuellement ou en masse.
 
 ### Supression des photos et des collections
@@ -169,6 +173,7 @@ Sur chacune de ces pages, les photos peuvent être filtrées par :
 -   catégorie
 
 Chaque photo peut être affichée dans une lightbox contenant les informations sur sa date et son lieu de création ainsi que l'album et les catégories qui lui sont attachées.
+
 La lightbox est un carousel permettant de naviguer entre les photos affichées sur la page.
 
 ### Collections
@@ -204,9 +209,16 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 -   [ ] Afficher une grille des catégories, des albums et des emplacements privés autorisés
 
+### Index des publications et des utilisateurs
+
+-   [ ] Trier
+-   [ ] Choix du nombre de lignes à afficher (entre 10 et 100)
+
 ### Collections de photos
 
+-   [ ] Trier les albums par titre et non par id
 -   [ ] Attacher les photos directement depuis le formulaire de modification d'une collection
+-   [ ] Afficher le nombres de photos attachées dans l'index
 
 ### Utilisateur
 
@@ -214,6 +226,8 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 -   [ ] Permettre aux abonnés de demander la suppression de leur profil
 -   [ ] Forcer l'existence d'au moins un administrateur
 -   [ ] Restreindre la possibilité à l'administrateur de supprimer son propre profil
+-   [ ] Ajouter automatiquement les catégories privées parentes aux catégories autorisées lors de l'autorisation d'une catégorie privée
+-   [ ] Autorisations en masse
 
 ### Front office
 
@@ -235,6 +249,10 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 -   [ ] Thumbnails de même ratio sur les cartes et thumbnails en arrière plan du titre
 
+#### Utilisateurs
+
+-   [ ] Améliorer le formulaire de connection
+
 ### Sécurité
 
 -   [ ] Sécuriser l'accès au dossier d'images
@@ -247,4 +265,4 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 ### Référencement
 
--   [ ] Référencement
+-   [ ] Référencement ?
