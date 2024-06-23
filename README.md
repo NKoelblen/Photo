@@ -2,29 +2,6 @@
 
 Ce projet est un modèle de blog photo amateur.
 
--   [BESOINS](#besoins)
-    -   [Visteurs](#visiteurs)
-    -   [Visteurs connectés](#visiteurs-connectes)
-    -   [Administrateur](#administrateur)
--   [CHOIX TECHNIQUES](#choix-techniques)
-    -   [Langages de programmation](#langages-de-programmations)
-    -   [Frameworks](#frameworks)
-    -   [Librairies](#librairies)
-    -   [Architecture](#architecture)
--   [FONCTIONNALITES](#fonctionnalites)
-    -   [Création des photos](#creation-des-photos)
-    -   [Lieux de prise de vue](#lieux-de-prise-de-vue)
-    -   [Organisation des photos](#organisation-des-photos)
-    -   [Accès public/privé aux photos](#acces-public-prive-aux-photos)
-    -   [Modification des photos](#modification-des-photos)
-    -   [Modification des collections](#modification-des-collections-autres-publications)
-    -   [Supression des photos et des collections](#modification-des-photos)
-    -   [Modification des photos](#supression-des-photos-et-des-collections)
-    -   [Index des publications](#index-des-publications)
-    -   [Utilisateurs](#utilisateurs)
-    -   [Front office](#front-office)
--   [A FAIRE](#a-faire)
-
 ## BESOINS
 
 ### Visiteurs
@@ -253,7 +230,7 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 
 ### Front office
 
--   [] Refondre la page d'accueil
+-   [ ] Refondre la page d'accueil
 
 #### Photos
 
