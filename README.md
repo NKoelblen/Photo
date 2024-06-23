@@ -2,6 +2,29 @@
 
 Ce projet est un modèle de blog photo amateur.
 
+-   [BESOINS](#markdown-header-besoins)
+    -   [Visteurs](#markdown-header-visiteurs)
+    -   [Visteurs connectés](#markdown-header-visiteurs-connectes)
+    -   [Administrateur](#markdown-header-administrateur)
+-   [CHOIX TECHNIQUES](#markdown-header-choix-techniques)
+    -   [Langages de programmation](#markdown-header-langages-de-programmations)
+    -   [Frameworks](#markdown-header-frameworks)
+    -   [Librairies](#markdown-header-librairies)
+    -   [Architecture](#markdown-header-architecture)
+-   [FONCTIONNALITES](#markdown-header-fonctionnalites)
+    -   [Création des photos](#markdown-header-creation-des-photos)
+    -   [Lieux de prise de vue](#markdown-header-lieux-de-prise-de-vue)
+    -   [Organisation des photos](#markdown-header-organisation-des-photos)
+    -   [Accès public/privé aux photos](#markdown-header-acces-public-prive-aux-photos)
+    -   [Modification des photos](#markdown-header-modification-des-photos)
+    -   [Modification des collections](#markdown-header-modification-des-collections-autres-publications)
+    -   [Supression des photos et des collections](#markdown-header-modification-des-photos)
+    -   [Modification des photos](#markdown-header-supression-des-photos-et-des-collections)
+    -   [Index des publications](#markdown-header-index-des-publications)
+    -   [Utilisateurs](#markdown-header-utilisateurs)
+    -   [Front office](#markdown-header-front-office)
+-   [A FAIRE](#markdown-header-a-faire)
+
 ## BESOINS
 
 ### Visiteurs
@@ -74,7 +97,7 @@ Lors de la création de photo :
     - date de création = extraite des données exif de la photo
 4. les photos sont enregistrées dans la base de données comme brouillons (état 'draft') et pourront être publiées (état 'published') par la suite pour être affichées dans le front office
 
-### Lieux de prise de vue des photos
+### Lieux de prise de vue
 
 Un type de publications 'location' (Emplacement) permet de renseigner le lieu de prise de vue des photos.
 
@@ -176,13 +199,13 @@ Chaque photo peut être affichée dans une lightbox contenant les informations s
 
 La lightbox est un carousel permettant de naviguer entre les photos affichées sur la page.
 
-### Collections
+#### Collections
 
-#### Albums
+##### Albums
 
 L'index des albums affiche un grille paginée des albums.
 
-### Publications hiérarchisées (Catégories & Emplacements)
+#### Publications hiérarchisées (Catégories & Emplacements)
 
 L'index de chaque publication hiérarchisée affiche une grille des publications racines.
 
@@ -192,7 +215,7 @@ Sur chaque page individuelle d'une publication hiérarchisée, sont affichés :
 -   éventuellement, une grille des publications enfants
 -   la grille des photos qui lui sont directement attachées ou attachées à ses descendants
 
-### Emplacements
+#### Emplacements
 
 L'index des emplacements affiche une carte OpenStreetMap des emplacements sans enfants.
 
@@ -218,7 +241,6 @@ Sur chaque page individuelle d'un emplacement, une carte OpenStreetMap affiche :
 #### Collections de photos
 
 -   [ ] Attacher les photos directement depuis le formulaire de modification d'une collection
--   [ ] Afficher le nombres de photos attachées dans l'index
 
 #### Utilisateur
 

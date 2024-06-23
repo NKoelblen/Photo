@@ -14,8 +14,8 @@ abstract class CollectionRepository extends PostRepository
      */
     public function find_paginated(string $status, array $columns = ['id', 'title', 'slug'], string $order = 'title ASC', int $per_page = 20): array
     {
-        $clauses = "FROM nk_$this->table WHERE status = :status";
         $columns = implode(', ', $columns);
+        $clauses = "FROM nk_$this->table WHERE status = :status";
 
         return $this->fetch_paginated_entities(
             query: "SELECT $columns $clauses",

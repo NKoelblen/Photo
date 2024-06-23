@@ -32,6 +32,55 @@ final class AlbumRepository extends CollectionRepository
     }
 
     /**
+     * used for admin indexes
+     * 
+     * @return array[Pagination, AlbumEntity[]]
+     */
+    public function find_paginated(string $status, array $columns = ['id', 'title', 'slug'], string $order = 'title ASC', int $per_page = 20): array
+    {
+        foreach ($columns as $key => $value):
+            $columns[$key] = "t.$value";
+        endforeach;
+        $columns = implode(', ', $columns);
+
+        return $this->fetch_paginated_entities(
+            query:
+            "SELECT 
+                 $columns, 
+                 JSON_OBJECTAGG(p.visibility, p.photos_nb) AS photos_nb
+             FROM nk_$this->table t
+             LEFT JOIN (
+                 SELECT 
+                    CASE 
+                         WHEN private_ids IS NULL OR private_ids = '[]' 
+                         THEN 'public' 
+                         ELSE 'private' 
+                    END AS visibility, 
+                    COUNT(p.id) AS photos_nb,
+                    JSON_ARRAYAGG(p.{$this->table}_id) AS t_ids
+                 FROM nk_$this->table t
+                 LEFT JOIN nk_photo p ON t.id = p.{$this->table}_id
+                 GROUP BY
+                     t.id,
+                     CASE 
+                         WHEN private_ids IS NULL OR private_ids = '[]' 
+                         THEN 'public' 
+                         ELSE 'private' 
+                     END
+             ) p ON t.id MEMBER OF (p.t_ids) 
+             WHERE t.status = :status
+             GROUP BY t.id",
+            query_count:
+            "SELECT COUNT(id)
+             FROM nk_$this->table
+             WHERE status = :status",
+            params: compact('status'),
+            order: htmlentities($order),
+            per_page: $per_page
+        );
+    }
+
+    /**
      * used for edit photo
      */
     public function edit_photo_list(): array

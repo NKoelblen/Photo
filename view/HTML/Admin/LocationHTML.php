@@ -19,6 +19,12 @@ class LocationHTML extends RecursiveHTML
                 <?= $post->get_title(); ?>
             </a>
         </td>
+        <td class="px-3 text-end">
+            <?= isset($post->get_photos_nb()['public']) && $post->get_photos_nb()['public'] ? $post->get_photos_nb()['public'] : '' ?>
+        </td>
+        <td class="px-3 text-end">
+            <?= isset($post->get_photos_nb()['private']) && $post->get_photos_nb()['private'] ? $post->get_photos_nb()['private'] : '' ?>
+        </td>
 
         <?php return ob_get_clean();
     }

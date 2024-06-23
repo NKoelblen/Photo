@@ -81,6 +81,8 @@ abstract class RecursiveRepository extends CollectionRepository
     }
 
     /**
+     * used to list
+     * 
      * @return RecursiveEntity[]
      */
     protected function find_to_list(array $columns = []): array
@@ -161,13 +163,16 @@ abstract class RecursiveRepository extends CollectionRepository
      * @param string[] $columns
      * @return array[Pagination, RecursiveEntity[]]
      */
-    public function find_paginated_recursives(array $columns = [], string $order = 'path ASC', int $per_page = 20): array
+    public function find_paginated_recursives(array $columns = [], string $order = 'MIN(t.path) ASC', int $per_page = 20): array
     {
         $t_columns = [];
+        $min_columns = [];
         foreach ($columns as $column):
             $t_columns[] = "t.$column";
+            $min_columns[] = "MIN(t.$column) AS $column";
         endforeach;
         $t_columns = !empty($t_columns) ? implode(', ', $t_columns) . ', ' : '';
+        $min_columns = !empty($min_columns) ? implode(', ', $min_columns) . ', ' : '';
 
         return $this->fetch_paginated_entities(
             query:
@@ -196,7 +201,36 @@ abstract class RecursiveRepository extends CollectionRepository
                  JOIN tree ON t.parent_id = tree.id
                  WHERE t.status = 'published'
              )
-             SELECT * FROM tree",
+             SELECT DISTINCT
+                 t.id,
+                 MIN(t.title) AS title,
+                 MIN(t.slug) AS slug,
+                 $min_columns
+                 MIN(t.path) AS path,
+                 MIN(t.level) AS level,
+                 JSON_OBJECTAGG(p.visibility, p.photos_nb) AS photos_nb
+             FROM tree t
+             LEFT JOIN (
+                 SELECT 
+                    CASE 
+                         WHEN private_ids IS NULL OR private_ids = '[]' 
+                         THEN 'public' 
+                         ELSE 'private' 
+                    END AS visibility, 
+                    COUNT(p.id) AS photos_nb,
+                    JSON_ARRAYAGG(pt.{$this->table}_id) AS t_ids
+                 FROM nk_$this->table t
+                 LEFT JOIN nk_{$this->photo_table}_$this->table pt ON t.id = pt.{$this->table}_id
+                 JOIN nk_photo p ON pt.{$this->photo_table}_id = p.id
+                 GROUP BY
+                     t.id,
+                     CASE 
+                         WHEN private_ids IS NULL OR private_ids = '[]' 
+                         THEN 'public' 
+                         ELSE 'private' 
+                     END
+             ) p ON t.id MEMBER OF (p.t_ids)
+             GROUP BY t.id",
 
             query_count:
             "SELECT COUNT(id)
