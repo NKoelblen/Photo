@@ -1,12 +1,12 @@
 name: deploy-prod
 run-name: Deploy prod 🚀
-# Controls when the action will run. Triggers the workflow on pull request types closed on branch main
+# Controls when the action will run. Triggers the workflow on pull request types closed on branch prod
 on:
     pull_request:
         types:
             - closed
         branches:
-            - main
+            - prod
 # Prepare jobs
 jobs:
     deploy:
