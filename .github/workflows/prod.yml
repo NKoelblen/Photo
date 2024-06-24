@@ -1,0 +1,40 @@
+name: deploy-prod
+run-name: Deploy prod 🚀
+# Controls when the action will run. Triggers the workflow on pull request types closed on branch main
+on:
+    pull_request:
+        types:
+            - closed
+        branches:
+            - main
+# Prepare jobs
+jobs:
+    deploy:
+        name: Deploy
+        if: github.event.pull_request.merged == true
+        runs-on: ubuntu-latest
+        env:
+            # Database configuration
+            # DB_NAME: ${{ secrets.DB_NAME_STAGING }}
+            # DB_USER: ${{ secrets.DB_USER_STAGING }}
+            # DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGING }}
+            # DB_HOST: ${{ secrets.DB_HOST_STAGING }}
+            # SSH configuration
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+            SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+            SSH_PORT: ${{ secrets.SSH_PORT }}
+            # Github configuration
+            GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        steps:
+            - name: executing remote ssh commands using password
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ env.SSH_HOST}}
+                  username: ${{ env.SSH_USER}}
+                  password: ${{ env.SSH_PASSWORD}}
+                  port: ${{ env.SSH_PORT}}
+                  script: |
+                      cd /homez.1033/onokodh/demo.photo
+                      git reset HEAD --hard
+                      git pull https://${{ env.GIT_TOKEN }}@github.com//NKoelblen/Photo prod

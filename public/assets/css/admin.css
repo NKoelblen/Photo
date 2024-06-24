@@ -1,0 +1,15 @@
+.max-vh-50 {
+	max-height: 50vh;
+}
+
+.nowrap {
+	white-space: nowrap;
+}
+
+#index th {
+	height: 46.4px;
+}
+
+#map {
+	height: 50vh;
+}
